@@ -1,0 +1,242 @@
+#!/usr/bin/env python3
+"""
+MeloMind — 双核音乐发现引擎
+功能1: 风格共鸣 (Style Resonance) — 根据一首歌推荐风格相似的音乐
+功能2: 旋律追踪 (Melody Tracker) — 通过哼唱/旋律片段找到含有相似旋律的歌曲
+
+使用方法:
+  建立风格索引:
+    python melomind.py style-index --library ~/Music
+
+  风格推荐:
+    python melomind.py style-search <查询音频> [--top 5]
+
+  建立旋律索引:
+    python melomind.py melody-index --library ~/Music
+
+  旋律搜索:
+    python melomind.py melody-search <哼唱/片段音频> [--top 5]
+"""
+
+import os
+import argparse
+import numpy as np
+import librosa
+from scipy.spatial.distance import cosine
+from sklearn.preprocessing import StandardScaler
+from fastdtw import fastdtw
+import warnings
+warnings.filterwarnings('ignore')
+
+# ======================== 音频特征提取 ========================
+def extract_style_features(file_path, sr=22050):
+    """提取代表风格的整体特征向量（46维）"""
+    y, sr = librosa.load(file_path, sr=sr, mono=True)
+    y, _ = librosa.effects.trim(y, top_db=20)
+    if len(y) < sr * 0.5:  # 太短则放弃
+        raise ValueError("Audio too short")
+    
+    mfcc = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=20)
+    mfcc_mean = np.mean(mfcc, axis=1)
+    mfcc_std = np.std(mfcc, axis=1)
+    
+    cent = librosa.feature.spectral_centroid(y=y, sr=sr)
+    cent_mean, cent_std = np.mean(cent), np.std(cent)
+    
+    zcr = librosa.feature.zero_crossing_rate(y)
+    zcr_mean, zcr_std = np.mean(zcr), np.std(zcr)
+    
+    rolloff = librosa.feature.spectral_rolloff(y=y, sr=sr)
+    rolloff_mean, rolloff_std = np.mean(rolloff), np.std(rolloff)
+    
+    return np.concatenate([
+        mfcc_mean, mfcc_std,
+        [cent_mean, cent_std, zcr_mean, zcr_std, rolloff_mean, rolloff_std]
+    ])
+
+def extract_pitch_contour(file_path, sr=22050, hop_length=512):
+    """提取主旋律音高序列（MIDI编号，静音为0）"""
+    y, sr = librosa.load(file_path, sr=sr, mono=True)
+    y, _ = librosa.effects.trim(y, top_db=20)
+    if len(y) < sr * 0.5:
+        raise ValueError("Audio too short")
+    f0, voiced_flag, _ = librosa.pyin(y,
+                                      fmin=librosa.note_to_hz('C2'),
+                                      fmax=librosa.note_to_hz('C7'),
+                                      sr=sr, hop_length=hop_length)
+    f0 = np.nan_to_num(f0, nan=0.0)
+    # 转换成MIDI编号便于跨八度匹配
+    midi = np.where(f0 > 0, 69 + 12 * np.log2(f0 / 440.0), 0)
+    return midi.astype(np.float32)
+
+# ======================== 风格共鸣引擎 ========================
+class StyleResonance:
+    def __init__(self, index_path="style_index.npz"):
+        self.index_path = index_path
+        self.library_features = None
+        self.library_paths = None
+        self.scaler = None
+
+    def build_index(self, library_dir):
+        """扫描目录建立风格特征索引"""
+        features, paths = [], []
+        valid_ext = ('.mp3', '.wav', '.flac', '.ogg', '.m4a')
+        for root, _, files in os.walk(library_dir):
+            for f in files:
+                if f.lower().endswith(valid_ext):
+                    path = os.path.join(root, f)
+                    try:
+                        feat = extract_style_features(path)
+                        features.append(feat)
+                        paths.append(path)
+                        print(f"  [style] indexed: {path}")
+                    except Exception as e:
+                        print(f"  [style] skip {path}: {e}")
+        if not features:
+            raise RuntimeError("No valid audio files found.")
+        features = np.array(features)
+        scaler = StandardScaler()
+        features_scaled = scaler.fit_transform(features)
+        np.savez(self.index_path,
+                 features=features_scaled,
+                 paths=np.array(paths),
+                 scaler_mean=scaler.mean_,
+                 scaler_scale=scaler.scale_)
+        self.library_features = features_scaled
+        self.library_paths = np.array(paths)
+        self.scaler = scaler
+        print(f"Style index saved with {len(paths)} tracks.")
+
+    def load_index(self):
+        data = np.load(self.index_path, allow_pickle=True)
+        self.library_features = data['features']
+        self.library_paths = data['paths']
+        self.scaler = StandardScaler()
+        self.scaler.mean_ = data['scaler_mean']
+        self.scaler.scale_ = data['scaler_scale']
+        print(f"Loaded style index: {len(self.library_paths)} tracks")
+
+    def query(self, audio_path, top_n=5):
+        """根据查询音频返回风格最相近的top_n首歌曲"""
+        if self.library_features is None:
+            self.load_index()
+        q_feat = extract_style_features(audio_path)
+        q_scaled = self.scaler.transform([q_feat])[0]
+        sims = [1 - cosine(q_scaled, feat) for feat in self.library_features]
+        top_idx = np.argsort(sims)[::-1][:top_n]
+        return [(self.library_paths[i], sims[i]) for i in top_idx]
+
+# ======================== 旋律追踪引擎 ========================
+class MelodyTracker:
+    def __init__(self, index_path="melody_index.npz"):
+        self.index_path = index_path
+        self.library_contours = None
+        self.library_paths = None
+
+    def build_index(self, library_dir):
+        """为所有歌曲提取旋律轮廓并存储"""
+        contours, paths = [], []
+        valid_ext = ('.mp3', '.wav', '.flac', '.ogg', '.m4a')
+        for root, _, files in os.walk(library_dir):
+            for f in files:
+                if f.lower().endswith(valid_ext):
+                    path = os.path.join(root, f)
+                    try:
+                        pitch = extract_pitch_contour(path)
+                        if np.count_nonzero(pitch) < 10:
+                            print(f"  [melody] skip {path}: too few pitched frames")
+                            continue
+                        contours.append(pitch)
+                        paths.append(path)
+                        print(f"  [melody] indexed: {path}")
+                    except Exception as e:
+                        print(f"  [melody] skip {path}: {e}")
+        if not contours:
+            raise RuntimeError("No valid melodies extracted.")
+        np.savez(self.index_path, features=np.array(contours, dtype=object),
+                 paths=np.array(paths))
+        self.library_contours = contours
+        self.library_paths = np.array(paths)
+        print(f"Melody index saved with {len(paths)} tracks.")
+
+    def load_index(self):
+        data = np.load(self.index_path, allow_pickle=True)
+        self.library_contours = data['features']
+        self.library_paths = data['paths']
+        print(f"Loaded melody index: {len(self.library_paths)} tracks")
+
+    def query(self, audio_path, top_n=5):
+        """对查询旋律进行DTW匹配"""
+        if self.library_contours is None:
+            self.load_index()
+        q_pitch = extract_pitch_contour(audio_path)
+        # 降采样加速
+        q_sub = q_pitch[::10]
+        distances = []
+        for feat in self.library_contours:
+            f_sub = feat[::10]
+            dist, _ = fastdtw(q_sub.reshape(-1,1), f_sub.reshape(-1,1), radius=30)
+            distances.append(dist)
+        top_idx = np.argsort(distances)[:top_n]
+        return [(self.library_paths[i], distances[i]) for i in top_idx]
+
+# ======================== 命令行入口 ========================
+def main():
+    parser = argparse.ArgumentParser(
+        description="MeloMind - 双核音乐发现引擎 (风格共鸣 + 旋律追踪)",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+示例用法:
+  python melomind.py style-index --library ~/Music
+  python melomind.py style-search cool_song.wav --top 10
+  python melomind.py melody-index --library ~/Music
+  python melomind.py melody-search humming.wav --top 5
+        """
+    )
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    # 风格索引
+    parser_style_idx = subparsers.add_parser("style-index", help="建立风格特征索引")
+    parser_style_idx.add_argument("--library", "-l", required=True, help="音乐库目录")
+    parser_style_idx.add_argument("--index", default="style_index.npz", help="索引保存路径")
+
+    # 风格搜索
+    parser_style_s = subparsers.add_parser("style-search", help="根据查询音频寻找风格相似歌曲")
+    parser_style_s.add_argument("query", help="查询音频文件")
+    parser_style_s.add_argument("--index", default="style_index.npz", help="索引文件路径")
+    parser_style_s.add_argument("--top", type=int, default=5, help="返回结果数量")
+
+    # 旋律索引
+    parser_melody_idx = subparsers.add_parser("melody-index", help="建立旋律轮廓索引")
+    parser_melody_idx.add_argument("--library", "-l", required=True, help="音乐库目录")
+    parser_melody_idx.add_argument("--index", default="melody_index.npz", help="索引保存路径")
+
+    # 旋律搜索
+    parser_melody_s = subparsers.add_parser("melody-search", help="哼唱/旋律片段搜索")
+    parser_melody_s.add_argument("query", help="查询音频文件")
+    parser_melody_s.add_argument("--index", default="melody_index.npz", help="索引文件路径")
+    parser_melody_s.add_argument("--top", type=int, default=5, help="返回结果数量")
+
+    args = parser.parse_args()
+
+    if args.command == "style-index":
+        engine = StyleResonance(index_path=args.index)
+        engine.build_index(args.library)
+    elif args.command == "style-search":
+        engine = StyleResonance(index_path=args.index)
+        results = engine.query(args.query, top_n=args.top)
+        print(f"\n🎧 风格相似推荐 (基于 {os.path.basename(args.query)}):")
+        for i, (path, sim) in enumerate(results, 1):
+            print(f"{i}. {os.path.basename(path)} (相似度: {sim:.3f})")
+    elif args.command == "melody-index":
+        engine = MelodyTracker(index_path=args.index)
+        engine.build_index(args.library)
+    elif args.command == "melody-search":
+        engine = MelodyTracker(index_path=args.index)
+        results = engine.query(args.query, top_n=args.top)
+        print(f"\n🎵 旋律追踪结果 (基于 {os.path.basename(args.query)}):")
+        for i, (path, dist) in enumerate(results, 1):
+            print(f"{i}. {os.path.basename(path)} (DTW 距离: {dist:.1f})")
+
+if __name__ == "__main__":
+    main()
