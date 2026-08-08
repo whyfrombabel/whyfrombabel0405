@@ -1,242 +1,109 @@
-#!/usr/bin/env python3
-"""
-MeloMind — 双核音乐发现引擎
-功能1: 风格共鸣 (Style Resonance) — 根据一首歌推荐风格相似的音乐
-功能2: 旋律追踪 (Melody Tracker) — 通过哼唱/旋律片段找到含有相似旋律的歌曲
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MeloMind - 双核音乐发现引擎</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; background: #0f0f0f; color: #e0e0e0; }
+        h1 { color: #a855f7; text-align: center; }
+        .container { background: #1a1a1a; border-radius: 16px; padding: 30px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
+        .mode-select { display: flex; gap: 20px; margin: 20px 0; justify-content: center; }
+        .mode-select label { cursor: pointer; padding: 12px 24px; border-radius: 30px; background: #2a2a2a; transition: 0.2s; }
+        .mode-select input[type="radio"] { display: none; }
+        .mode-select input:checked + label { background: #a855f7; color: white; }
+        .upload-area { border: 2px dashed #555; border-radius: 12px; padding: 30px; text-align: center; margin: 20px 0; }
+        .upload-area:hover { border-color: #a855f7; }
+        #fileInput { display: none; }
+        .btn { display: inline-block; padding: 12px 30px; background: #a855f7; color: white; border: none; border-radius: 30px; cursor: pointer; font-size: 16px; }
+        .btn:hover { background: #9333ea; }
+        .loading { display: none; text-align: center; margin: 20px; }
+        .results { margin-top: 30px; }
+        .result-item { display: flex; align-items: center; background: #2a2a2a; padding: 12px; border-radius: 8px; margin-bottom: 10px; }
+        .result-item .name { flex: 1; }
+        .result-item .score { margin: 0 20px; color: #a855f7; }
+        audio { height: 36px; }
+    </style>
+</head>
+<body>
+    <h1>🎵 MeloMind</h1>
+    <div class="container">
+        <p style="text-align:center">选择模式，上传一段音频，发现相似的音乐</p>
+        <div class="mode-select">
+            <input type="radio" id="mode_style" name="mode" value="style" checked>
+            <label for="mode_style">🎧 风格共鸣</label>
+            <input type="radio" id="mode_melody" name="mode" value="melody">
+            <label for="mode_melody">🎼 旋律追踪</label>
+        </div>
 
-使用方法:
-  建立风格索引:
-    python melomind.py style-index --library ~/Music
+        <div class="upload-area" id="dropArea">
+            <p>拖拽音频文件到这里，或点击选择</p>
+            <input type="file" id="fileInput" accept="audio/*">
+            <button class="btn" onclick="document.getElementById('fileInput').click()">选择文件</button>
+            <span id="fileName" style="display:block; margin-top:10px; color:#aaa;"></span>
+        </div>
 
-  风格推荐:
-    python melomind.py style-search <查询音频> [--top 5]
+        <button class="btn" onclick="search()" style="width:100%;" id="searchBtn">🔍 开始搜索</button>
+        <div class="loading" id="loading">分析中，请稍候...</div>
+        <div class="results" id="results"></div>
+    </div>
 
-  建立旋律索引:
-    python melomind.py melody-index --library ~/Music
+    <script>
+        const dropArea = document.getElementById('dropArea');
+        const fileInput = document.getElementById('fileInput');
+        const fileNameSpan = document.getElementById('fileName');
 
-  旋律搜索:
-    python melomind.py melody-search <哼唱/片段音频> [--top 5]
-"""
+        dropArea.addEventListener('dragover', (e) => { e.preventDefault(); dropArea.style.borderColor = '#a855f7'; });
+        dropArea.addEventListener('dragleave', () => { dropArea.style.borderColor = '#555'; });
+        dropArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropArea.style.borderColor = '#555';
+            if (e.dataTransfer.files.length) {
+                fileInput.files = e.dataTransfer.files;
+                fileNameSpan.textContent = e.dataTransfer.files[0].name;
+            }
+        });
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files.length) fileNameSpan.textContent = fileInput.files[0].name;
+        });
 
-import os
-import argparse
-import numpy as np
-import librosa
-from scipy.spatial.distance import cosine
-from sklearn.preprocessing import StandardScaler
-from fastdtw import fastdtw
-import warnings
-warnings.filterwarnings('ignore')
+        async function search() {
+            const file = fileInput.files[0];
+            if (!file) { alert('请先选择一个音频文件'); return; }
+            const mode = document.querySelector('input[name="mode"]:checked').value;
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('mode', mode);
+            formData.append('top', '10');
 
-# ======================== 音频特征提取 ========================
-def extract_style_features(file_path, sr=22050):
-    """提取代表风格的整体特征向量（46维）"""
-    y, sr = librosa.load(file_path, sr=sr, mono=True)
-    y, _ = librosa.effects.trim(y, top_db=20)
-    if len(y) < sr * 0.5:  # 太短则放弃
-        raise ValueError("Audio too short")
-    
-    mfcc = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=20)
-    mfcc_mean = np.mean(mfcc, axis=1)
-    mfcc_std = np.std(mfcc, axis=1)
-    
-    cent = librosa.feature.spectral_centroid(y=y, sr=sr)
-    cent_mean, cent_std = np.mean(cent), np.std(cent)
-    
-    zcr = librosa.feature.zero_crossing_rate(y)
-    zcr_mean, zcr_std = np.mean(zcr), np.std(zcr)
-    
-    rolloff = librosa.feature.spectral_rolloff(y=y, sr=sr)
-    rolloff_mean, rolloff_std = np.mean(rolloff), np.std(rolloff)
-    
-    return np.concatenate([
-        mfcc_mean, mfcc_std,
-        [cent_mean, cent_std, zcr_mean, zcr_std, rolloff_mean, rolloff_std]
-    ])
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('results').innerHTML = '';
+            document.getElementById('searchBtn').disabled = true;
 
-def extract_pitch_contour(file_path, sr=22050, hop_length=512):
-    """提取主旋律音高序列（MIDI编号，静音为0）"""
-    y, sr = librosa.load(file_path, sr=sr, mono=True)
-    y, _ = librosa.effects.trim(y, top_db=20)
-    if len(y) < sr * 0.5:
-        raise ValueError("Audio too short")
-    f0, voiced_flag, _ = librosa.pyin(y,
-                                      fmin=librosa.note_to_hz('C2'),
-                                      fmax=librosa.note_to_hz('C7'),
-                                      sr=sr, hop_length=hop_length)
-    f0 = np.nan_to_num(f0, nan=0.0)
-    # 转换成MIDI编号便于跨八度匹配
-    midi = np.where(f0 > 0, 69 + 12 * np.log2(f0 / 440.0), 0)
-    return midi.astype(np.float32)
-
-# ======================== 风格共鸣引擎 ========================
-class StyleResonance:
-    def __init__(self, index_path="style_index.npz"):
-        self.index_path = index_path
-        self.library_features = None
-        self.library_paths = None
-        self.scaler = None
-
-    def build_index(self, library_dir):
-        """扫描目录建立风格特征索引"""
-        features, paths = [], []
-        valid_ext = ('.mp3', '.wav', '.flac', '.ogg', '.m4a')
-        for root, _, files in os.walk(library_dir):
-            for f in files:
-                if f.lower().endswith(valid_ext):
-                    path = os.path.join(root, f)
-                    try:
-                        feat = extract_style_features(path)
-                        features.append(feat)
-                        paths.append(path)
-                        print(f"  [style] indexed: {path}")
-                    except Exception as e:
-                        print(f"  [style] skip {path}: {e}")
-        if not features:
-            raise RuntimeError("No valid audio files found.")
-        features = np.array(features)
-        scaler = StandardScaler()
-        features_scaled = scaler.fit_transform(features)
-        np.savez(self.index_path,
-                 features=features_scaled,
-                 paths=np.array(paths),
-                 scaler_mean=scaler.mean_,
-                 scaler_scale=scaler.scale_)
-        self.library_features = features_scaled
-        self.library_paths = np.array(paths)
-        self.scaler = scaler
-        print(f"Style index saved with {len(paths)} tracks.")
-
-    def load_index(self):
-        data = np.load(self.index_path, allow_pickle=True)
-        self.library_features = data['features']
-        self.library_paths = data['paths']
-        self.scaler = StandardScaler()
-        self.scaler.mean_ = data['scaler_mean']
-        self.scaler.scale_ = data['scaler_scale']
-        print(f"Loaded style index: {len(self.library_paths)} tracks")
-
-    def query(self, audio_path, top_n=5):
-        """根据查询音频返回风格最相近的top_n首歌曲"""
-        if self.library_features is None:
-            self.load_index()
-        q_feat = extract_style_features(audio_path)
-        q_scaled = self.scaler.transform([q_feat])[0]
-        sims = [1 - cosine(q_scaled, feat) for feat in self.library_features]
-        top_idx = np.argsort(sims)[::-1][:top_n]
-        return [(self.library_paths[i], sims[i]) for i in top_idx]
-
-# ======================== 旋律追踪引擎 ========================
-class MelodyTracker:
-    def __init__(self, index_path="melody_index.npz"):
-        self.index_path = index_path
-        self.library_contours = None
-        self.library_paths = None
-
-    def build_index(self, library_dir):
-        """为所有歌曲提取旋律轮廓并存储"""
-        contours, paths = [], []
-        valid_ext = ('.mp3', '.wav', '.flac', '.ogg', '.m4a')
-        for root, _, files in os.walk(library_dir):
-            for f in files:
-                if f.lower().endswith(valid_ext):
-                    path = os.path.join(root, f)
-                    try:
-                        pitch = extract_pitch_contour(path)
-                        if np.count_nonzero(pitch) < 10:
-                            print(f"  [melody] skip {path}: too few pitched frames")
-                            continue
-                        contours.append(pitch)
-                        paths.append(path)
-                        print(f"  [melody] indexed: {path}")
-                    except Exception as e:
-                        print(f"  [melody] skip {path}: {e}")
-        if not contours:
-            raise RuntimeError("No valid melodies extracted.")
-        np.savez(self.index_path, features=np.array(contours, dtype=object),
-                 paths=np.array(paths))
-        self.library_contours = contours
-        self.library_paths = np.array(paths)
-        print(f"Melody index saved with {len(paths)} tracks.")
-
-    def load_index(self):
-        data = np.load(self.index_path, allow_pickle=True)
-        self.library_contours = data['features']
-        self.library_paths = data['paths']
-        print(f"Loaded melody index: {len(self.library_paths)} tracks")
-
-    def query(self, audio_path, top_n=5):
-        """对查询旋律进行DTW匹配"""
-        if self.library_contours is None:
-            self.load_index()
-        q_pitch = extract_pitch_contour(audio_path)
-        # 降采样加速
-        q_sub = q_pitch[::10]
-        distances = []
-        for feat in self.library_contours:
-            f_sub = feat[::10]
-            dist, _ = fastdtw(q_sub.reshape(-1,1), f_sub.reshape(-1,1), radius=30)
-            distances.append(dist)
-        top_idx = np.argsort(distances)[:top_n]
-        return [(self.library_paths[i], distances[i]) for i in top_idx]
-
-# ======================== 命令行入口 ========================
-def main():
-    parser = argparse.ArgumentParser(
-        description="MeloMind - 双核音乐发现引擎 (风格共鸣 + 旋律追踪)",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-示例用法:
-  python melomind.py style-index --library ~/Music
-  python melomind.py style-search cool_song.wav --top 10
-  python melomind.py melody-index --library ~/Music
-  python melomind.py melody-search humming.wav --top 5
-        """
-    )
-    subparsers = parser.add_subparsers(dest="command", required=True)
-
-    # 风格索引
-    parser_style_idx = subparsers.add_parser("style-index", help="建立风格特征索引")
-    parser_style_idx.add_argument("--library", "-l", required=True, help="音乐库目录")
-    parser_style_idx.add_argument("--index", default="style_index.npz", help="索引保存路径")
-
-    # 风格搜索
-    parser_style_s = subparsers.add_parser("style-search", help="根据查询音频寻找风格相似歌曲")
-    parser_style_s.add_argument("query", help="查询音频文件")
-    parser_style_s.add_argument("--index", default="style_index.npz", help="索引文件路径")
-    parser_style_s.add_argument("--top", type=int, default=5, help="返回结果数量")
-
-    # 旋律索引
-    parser_melody_idx = subparsers.add_parser("melody-index", help="建立旋律轮廓索引")
-    parser_melody_idx.add_argument("--library", "-l", required=True, help="音乐库目录")
-    parser_melody_idx.add_argument("--index", default="melody_index.npz", help="索引保存路径")
-
-    # 旋律搜索
-    parser_melody_s = subparsers.add_parser("melody-search", help="哼唱/旋律片段搜索")
-    parser_melody_s.add_argument("query", help="查询音频文件")
-    parser_melody_s.add_argument("--index", default="melody_index.npz", help="索引文件路径")
-    parser_melody_s.add_argument("--top", type=int, default=5, help="返回结果数量")
-
-    args = parser.parse_args()
-
-    if args.command == "style-index":
-        engine = StyleResonance(index_path=args.index)
-        engine.build_index(args.library)
-    elif args.command == "style-search":
-        engine = StyleResonance(index_path=args.index)
-        results = engine.query(args.query, top_n=args.top)
-        print(f"\n🎧 风格相似推荐 (基于 {os.path.basename(args.query)}):")
-        for i, (path, sim) in enumerate(results, 1):
-            print(f"{i}. {os.path.basename(path)} (相似度: {sim:.3f})")
-    elif args.command == "melody-index":
-        engine = MelodyTracker(index_path=args.index)
-        engine.build_index(args.library)
-    elif args.command == "melody-search":
-        engine = MelodyTracker(index_path=args.index)
-        results = engine.query(args.query, top_n=args.top)
-        print(f"\n🎵 旋律追踪结果 (基于 {os.path.basename(args.query)}):")
-        for i, (path, dist) in enumerate(results, 1):
-            print(f"{i}. {os.path.basename(path)} (DTW 距离: {dist:.1f})")
-
-if __name__ == "__main__":
-    main()
+            try {
+                const resp = await fetch('/search', { method: 'POST', body: formData });
+                const data = await resp.json();
+                if (data.error) {
+                    document.getElementById('results').innerHTML = `<p style="color:red">错误: ${data.error}</p>`;
+                } else {
+                    let html = `<h3>${data.mode === 'style' ? '🎧 风格相似推荐' : '🎼 旋律匹配结果'}</h3>`;
+                    data.results.forEach(r => {
+                        html += `
+                        <div class="result-item">
+                            <span class="name">${r.name}</span>
+                            <span class="score">${data.mode === 'style' ? '相似度: '+r.score.toFixed(3) : 'DTW距离: '+r.score.toFixed(1)}</span>
+                            <audio controls src="${r.audio_url}"></audio>
+                        </div>`;
+                    });
+                    document.getElementById('results').innerHTML = html;
+                }
+            } catch (e) {
+                document.getElementById('results').innerHTML = `<p style="color:red">请求失败: ${e.message}</p>`;
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('searchBtn').disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>
