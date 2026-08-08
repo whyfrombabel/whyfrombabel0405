@@ -1,0 +1,4 @@
+MeloMind/
+├── melomind.py          # 主程序
+├── requirements.txt     # 依赖列表
+└── README.md            # 说明文档
