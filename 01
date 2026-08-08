@@ -1,3 +1,4 @@
-git clone <whyfrombabel.github.io>
-cd MeloMind-Web
-pip install -r requirements.txt
+git clone https://github.com/Binaryify/NeteaseCloudMusicApi.git
+cd NeteaseCloudMusicApi
+npm install
+node app.js   # 默认运行在 3000 端口
