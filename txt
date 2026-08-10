@@ -1,7 +1,0 @@
-flask
-numpy
-librosa
-fastdtw
-scikit-learn
-scipy
-requests
