@@ -1,0 +1,1008 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, maximum-scale=2.0">
+  <title>WHY · 管理后台</title>
+  <meta name="description" content="WHY 个人空间管理后台：上传照片、发布文章、推荐音乐、管理留言。密码保护，与访客端共享数据。">
+  <meta property="og:title" content="WHY · 管理后台">
+  <meta property="og:description" content="WHY 个人空间管理后台。密码保护，可发布照片、文章、音乐并管理留言。">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="zh_CN">
+  <meta name="twitter:card" content="summary">
+  <link rel="icon" href='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" rx="18" fill="%230f172a"/><circle cx="50" cy="36" r="18" fill="%23475569"/><ellipse cx="50" cy="74" rx="30" ry="16" fill="%23475569"/></svg>' type="image/svg+xml">
+
+  <style>
+    :root{--bg:#0f172a;--card:rgba(30,41,59,0.7);--muted:#94a3b8;--text:#e2e8f0;--accent:#94a3b8;--cursor:148,163,184;--border:rgba(148,163,184,0.15);--admin:#7dd3fc}
+    [data-theme="light"]{--bg:#f8fafc;--card:rgba(255,255,255,0.85);--muted:#475569;--text:#0f172a;--accent:#475569;--cursor:71,85,105;--border:rgba(71,85,105,0.08);--admin:#0284c7}
+    *{box-sizing:border-box;margin:0;padding:0}html,body{height:100%}
+    body{--mouse-x:50%;--mouse-y:50%;background:var(--bg);color:var(--text);font-family:Inter,Segoe UI,Roboto,system-ui,-apple-system,sans-serif;line-height:1.5;min-height:100vh;display:flex;flex-direction:column;padding:0 1.25rem;position:relative;overflow-x:hidden;cursor:none}
+    body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:-1;opacity:.42;background:radial-gradient(circle at var(--mouse-x) var(--mouse-y), rgba(var(--cursor),0.16), transparent 30%)}
+    #customCursor{position:fixed;top:0;left:0;width:18px;height:18px;border-radius:50%;pointer-events:none;transform:translate(-50%,-50%);background:rgba(var(--cursor),0.9);transition:background .15s ease,opacity .18s ease;z-index:9999;opacity:0;filter:url(#goo)}
+    body.mouse-active #customCursor{opacity:1}
+    .cursor-trail{position:fixed;border-radius:50%;pointer-events:none;background:rgba(var(--cursor),0.7);z-index:9998;opacity:0;filter:url(#goo);mix-blend-mode:normal}
+    body.mouse-active .cursor-trail{opacity:1}
+    .cursor-trail-1{width:60px;height:60px;background:radial-gradient(circle, rgba(var(--cursor),0.20) 0%, rgba(var(--cursor),0.08) 45%, transparent 70%);filter:none}
+    .cursor-trail-2{width:16px;height:16px;background:rgba(var(--cursor),0.5)}
+    .cursor-trail-3{width:10px;height:10px;background:rgba(var(--cursor),0.35)}
+    .wrapper{max-width:1100px;margin:0 auto;flex:1;display:flex;flex-direction:column}
+    /* Login screen */
+    .login-wrap{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 30%, rgba(125,211,252,0.10), transparent 60%), var(--bg);padding:2rem}
+    .login-card{background:var(--card);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid rgba(71,85,105,0.2);border-radius:0;padding:2.2rem 2rem;width:100%;max-width:420px;box-shadow:0 18px 30px -8px rgba(0,0,0,.45)}
+    .login-title{font-size:1.8rem;color:var(--text);margin-bottom:.3rem;text-align:center;letter-spacing:.04em}
+    .login-sub{color:var(--muted);text-align:center;margin-bottom:1.5rem;font-size:.95rem}
+    .login-input-wrap{position:relative;margin-bottom:1.2rem}
+    .login-input{width:100%;padding:.9rem 1rem;border:1px solid rgba(71,85,105,0.2);background:rgba(255,255,255,0.04);color:var(--text);font-size:1rem;letter-spacing:.08em;transition:border-color .2s,box-shadow .2s;border-radius:0}
+    .login-input:focus{border-color:var(--accent);box-shadow:0 0 0 4px rgba(148,163,184,0.12);outline:none}
+    .login-error{color:#f87171;font-size:.85rem;margin-top:.4rem;min-height:1.2rem;text-align:center}
+    .login-btn{width:100%;padding:.9rem;border:1px solid rgba(148,163,184,0.2);background:rgba(255,255,255,0.05);color:var(--text);font-weight:600;font-size:1rem;cursor:pointer;transition:transform .18s,box-shadow .18s,background .18s;letter-spacing:.12em;border-radius:0}
+    .login-btn:hover{transform:translateY(-2px);background:rgba(255,255,255,0.1);box-shadow:0 10px 20px rgba(0,0,0,.14)}
+    .login-tip{color:var(--muted);text-align:center;margin-top:1rem;font-size:.8rem}
+    .admin-banner{display:flex;align-items:center;gap:.7rem;background:rgba(125,211,252,0.06);border-left:3px solid var(--admin);padding:.7rem 1rem;border-radius:0;margin-bottom:1.2rem;color:var(--admin);font-size:.95rem;letter-spacing:.04em}
+    .logout-btn{margin-left:auto;padding:.4rem .9rem;border:1px solid var(--admin);background:transparent;color:var(--admin);cursor:pointer;font-size:.85rem;border-radius:0;transition:background .18s}
+    .logout-btn:hover{background:rgba(125,211,252,0.12)}
+    .navbar{display:flex;justify-content:flex-end;align-items:center;padding:1.8rem 0 1.2rem;border-bottom:1px solid var(--border);gap:1rem}
+    .avatar-link{display:flex;align-items:center;justify-content:center;margin-right:auto}
+    .avatar-img{width:44px;height:44px;border-radius:50%;object-fit:cover;border:2px solid #475569;background:#1e293b;box-shadow:0 4px 12px rgba(0,0,0,.35);cursor:pointer}
+    .nav-menu{display:flex;align-items:center;gap:1.2rem}
+    .nav-item{color:var(--muted);text-decoration:none;font-size:1rem;font-weight:500;padding:.3rem .4rem;border-radius:6px;transition:color .15s,background .15s,transform .2s}
+    .nav-item:hover,.nav-item:focus{color:var(--text);outline:none;background:rgba(255,255,255,0.02);transform:translateY(-1px)}
+    .home-link-active{color:var(--text);font-weight:600}
+    .info-card{background:var(--card);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid rgba(71,85,105,0.2);border-radius:0;padding:2rem;box-shadow:0 18px 30px -8px rgba(0,0,0,.45);max-width:680px;transition:transform .25s ease,box-shadow .25s ease}
+    .info-card:hover{transform:translateY(-3px);box-shadow:0 24px 36px rgba(0,0,0,.18)}
+    .greeting{font-size:.95rem;color:var(--muted);margin-bottom:.6rem}
+    .name{font-size:2.4rem;margin-bottom:.4rem;color:var(--text)}
+    .title-badge{display:inline-block;background:#1e293b;color:#b9c7dd;padding:.25rem .8rem;border-radius:0;font-size:.9rem;margin:0.4rem 0 1rem}
+    .bio{font-size:1.05rem;color:var(--muted);margin:1rem 0 1.2rem;border-left:3px solid #475569;padding-left:1rem}
+    .photo-panel{display:flex;flex-wrap:wrap;gap:1rem;margin:1rem 0 0;padding:0;border-radius:0;opacity:1;transition:opacity .35s ease,transform .35s ease,max-height .35s ease}
+    .photo-preview{position:relative;flex:1 1 260px;min-height:180px;border:2px dashed rgba(148,163,184,0.55);border-radius:0;background:rgba(255,255,255,0.04);display:flex;align-items:center;justify-content:center;color:rgba(226,232,240,0.65);font-size:2rem;text-align:center;background-size:cover;background-position:center;transition:border-color .22s,background .22s;cursor:pointer}
+    .photo-preview::after{content:'+';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:2.6rem;color:rgba(226,232,240,0.45);pointer-events:none}
+    .photo-preview.has-photo::after{content:''}
+    .photo-preview.has-photo{border-color:rgba(71,85,105,0.25);color:transparent}
+    .photo-upload{display:flex;flex-direction:column;gap:.65rem;align-items:flex-start}
+    #photoInput{display:none}
+    #removePhoto{display:none;align-self:flex-start;padding:.55rem .7rem;font-size:1rem;line-height:1;border-radius:50%;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.08);color:var(--text);cursor:pointer;transition:transform .2s,background .2s,box-shadow .2s;min-width:42px;min-height:42px;display:inline-flex;align-items:center;justify-content:center}
+    #removePhoto:hover{transform:translateY(-1px);background:rgba(255,255,255,0.14)}
+    .photo-note{font-size:.8rem;color:var(--muted);margin-top:.3rem}
+    .circle-hub{position:relative;display:flex;align-items:center;justify-content:center;min-height:420px;margin:0 0 1.2rem;padding:1.4rem;}
+    .circle-core{position:relative;width:160px;height:160px;border-radius:50%;border:1px solid rgba(148,163,184,0.3);background:rgba(255,255,255,0.08);box-shadow:0 24px 64px rgba(15,23,42,0.18),inset 0 0 0 1px rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .35s ease,box-shadow .35s ease,background .35s ease}
+    .circle-core:hover{transform:scale(1.03);box-shadow:0 30px 72px rgba(56,189,248,0.18),0 0 0 1px rgba(56,189,248,0.16)}
+    .circle-core::after{content:'';position:absolute;inset:0;border-radius:50%;box-shadow:0 0 0 12px rgba(56,189,248,0.08);pointer-events:none}
+    .circle-items{position:absolute;inset:0;pointer-events:none;visibility:hidden;opacity:0;transform:scale(0.92);transition:visibility 0s .35s,opacity .35s ease,transform .35s ease}
+    .circle-hub.open .circle-items{pointer-events:auto;visibility:visible;opacity:1;transform:scale(1);transition-delay:0s}
+    .circle-item{position:absolute;top:50%;left:50%;width:120px;height:120px;border-radius:50%;border:1px solid rgba(148,163,184,0.22);background:rgba(15,23,42,0.9);color:var(--text);display:flex;align-items:center;justify-content:center;text-align:center;padding:1rem;font-size:.95rem;font-weight:600;line-height:1.2;cursor:pointer;transition:transform .35s cubic-bezier(0.2,1,0.3,1),opacity .35s ease,box-shadow .35s ease,top .35s ease,left .35s ease;opacity:0;transform:translate(-50%,-50%) scale(0);pointer-events:none;backdrop-filter:blur(16px);touch-action:none}
+    .circle-item.dragging{cursor:grabbing;transform:translate(-50%,-50%) scale(1.03);box-shadow:0 30px 70px rgba(56,189,248,0.32);transition:none}
+    .circle-hub.open .circle-item{opacity:1;top:calc(50% + var(--ty,0));left:calc(50% + var(--tx,0));transform:translate(-50%,-50%) scale(1);pointer-events:auto}
+    .circle-item.selected{z-index:5;opacity:1;top:calc(50% + var(--selected-y,0));left:calc(50% + var(--selected-x,0));transform:translate(-50%,-50%) scale(1.05);box-shadow:0 26px 56px rgba(56,189,248,0.24)}
+    .circle-item.dismiss-away{opacity:0;pointer-events:none;top:calc(50% + var(--dismiss-y,0));left:calc(50% + var(--dismiss-x,-360px));transform:translate(-50%,-50%) scale(.25)}
+    .circle-hub.open .circle-core{transform:scale(1.04);box-shadow:0 30px 80px rgba(56,189,248,0.22),0 0 0 1px rgba(56,189,248,0.18)}
+    .circle-item:hover{box-shadow:0 22px 40px rgba(56,189,248,0.18);transform:translate(-50%,-50%) scale(1.03)}
+    .circle-item:nth-child(1){transition-delay:.08s}
+    .circle-item:nth-child(2){transition-delay:.14s}
+    .circle-item:nth-child(3){transition-delay:.2s}
+    .circle-item:nth-child(4){transition-delay:.26s}
+    .circle-exit{display:none;position:fixed;top:1.2rem;left:1.2rem;width:48px;height:48px;border-radius:50%;border:1px solid rgba(148,163,184,0.28);background:rgba(15,23,42,0.9);color:var(--text);cursor:pointer;align-items:center;justify-content:center;display:inline-flex;font-size:1.1rem;box-shadow:0 18px 38px rgba(0,0,0,0.18);transition:transform .2s,background .2s,opacity .25s ease}
+    .circle-exit.visible{display:inline-flex;opacity:1}
+    .circle-exit.hide{opacity:0}
+    .circle-exit:hover{transform:translateY(-1px);background:rgba(255,255,255,0.08)}
+    .section-exit{opacity:0;transform:translateY(18px) scale(0.98);transition:opacity .25s ease,transform .25s ease}
+    .details-grid{display:flex;flex-wrap:wrap;gap:1.2rem;margin-top:1rem;border-top:1px solid rgba(148,163,184,0.12);padding-top:1rem}
+    .detail-item{display:flex;flex-direction:column}
+    .detail-label{font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+    .detail-value{font-size:1rem;color:var(--text)}
+    .social-links{margin-top:1.2rem;display:flex;gap:1rem}
+    .social-icon{color:var(--muted);text-decoration:none;font-size:.95rem}
+    .social-icon:hover{color:var(--text)}
+    .placeholder-content{background:var(--card);backdrop-filter:blur(6px);border-radius:0;padding:2rem;color:var(--muted);border:1px solid rgba(51,65,85,0.08);max-width:680px;transition:transform .28s ease,box-shadow .28s ease,background .28s ease}
+    .hidden-section{display:none}
+    .visible-section{opacity:0;transform:translateY(14px);transition:opacity .35s ease,transform .35s ease}
+    .visible-section.show-active{opacity:1;transform:translateY(0)}
+    .footer-note{text-align:right;font-size:.85rem;color:var(--muted);padding:2rem 0;border-top:1px solid rgba(71,85,105,0.08);margin-top:2rem}
+    .messages-list{list-style:none;margin-top:1rem;display:flex;flex-direction:column;gap:.8rem;max-width:680px}
+    .music-form{display:flex;flex-direction:column;gap:.6rem;max-width:680px;margin-top:1rem}
+    .music-list{display:flex;flex-direction:column;gap:.9rem;margin-top:1.2rem}
+    .article-panel{display:flex;flex-direction:column;gap:1rem;margin-top:1.2rem}
+    .form-toggle{padding:.55rem .95rem;border:1px solid rgba(148,163,184,0.2);border-radius:0;background:rgba(255,255,255,0.05);color:var(--text);cursor:pointer;align-self:flex-start;transition:background .2s,transform .2s}
+    .form-toggle:hover{background:rgba(255,255,255,0.1);transform:translateY(-1px)}
+    .article-form{display:flex;flex-direction:column;gap:1rem;border:1px solid rgba(148,163,184,0.2);padding:1rem;border-radius:0;background:rgba(255,255,255,0.04)}
+    .article-form.hidden-section{display:none}
+    .article-form .form-group{display:flex;flex-direction:column;gap:.45rem;padding:.8rem 0}
+    .article-form .form-group:not(:last-child){border-bottom:1px solid rgba(148,163,184,0.18)}
+    .article-form input,.article-form textarea{background:transparent;border:1px solid rgba(148,163,184,0.2);padding:.75rem .9rem;color:var(--text);font-size:1rem}
+    .article-form textarea{min-height:100px}
+    .section-divider{border-top:1px solid rgba(148,163,184,0.18);margin:0}
+    .articles-list{display:flex;flex-direction:column;gap:1rem;margin-top:1rem}
+    .article-card{background:rgba(255,255,255,0.04);padding:1rem;border-radius:0;border:1px solid rgba(148,163,184,0.2);display:flex;flex-direction:column;gap:.85rem}
+    .article-card h3{margin:0;font-size:1.1rem;color:var(--text)}
+    .article-card .article-meta{display:flex;flex-wrap:wrap;justify-content:space-between;gap:.5rem;font-size:.88rem;color:var(--muted);align-items:center}
+    .article-card blockquote{margin:0;padding:1rem 1rem 0;border-left:4px solid rgba(148,163,184,0.4);color:var(--muted);font-style:italic}
+    .article-card p{margin:0;line-height:1.7;color:var(--text)}
+    .article-card button{align-self:flex-end;margin-top:.5rem}
+    .music-card{background:rgba(255,255,255,0.04);padding:1rem;border-radius:0;border:1px solid rgba(255,255,255,0.08);display:flex;flex-direction:column;gap:.6rem}
+    .music-meta{display:flex;flex-wrap:wrap;justify-content:space-between;gap:.4rem;font-size:.95rem;color:var(--muted);align-items:center}
+    .music-title{font-weight:600;color:var(--text)}
+    .music-note{color:var(--text);line-height:1.6}
+    .music-comments{margin-top:1rem;padding-top:1rem;border-top:1px solid rgba(255,255,255,0.08);display:flex;flex-direction:column;gap:.8rem}
+    .music-comment-item{background:rgba(255,255,255,0.03);padding:.75rem;border-radius:0;border:1px solid rgba(255,255,255,0.05);transition:transform .2s,box-shadow .2s;position:relative}
+    .music-comment-item.admin-comment{border-left:3px solid var(--admin);background:rgba(125,211,252,0.06)}
+    .music-comment-meta{font-size:.82rem;color:var(--muted);display:flex;justify-content:space-between;gap:.4rem;align-items:center;flex-wrap:wrap}
+    .admin-badge{display:inline-block;padding:.15rem .55rem;margin-right:.5rem;background:rgba(125,211,252,0.15);border:1px solid var(--admin);color:var(--admin);font-size:.72rem;letter-spacing:.06em;font-weight:700;border-radius:0}
+    .music-comment-form{display:flex;flex-direction:column;gap:.55rem}
+    .music-comment-input{min-height:80px;transition:border-color .25s,box-shadow .25s}
+    .music-intro{margin-top:0.8rem;color:var(--muted)}
+    .message-card{background:rgba(255,255,255,0.02);padding:1rem;border-radius:0;border:1px solid rgba(255,255,255,0.02);display:flex;flex-direction:column;transition:transform .2s,box-shadow .2s;position:relative}
+    .message-card.admin-message{border-left:3px solid var(--admin);background:rgba(125,211,252,0.06)}
+    .message-card:hover,.music-comment-item:hover,.placeholder-content:hover{transform:translateY(-3px);box-shadow:0 18px 32px rgba(0,0,0,.12)}
+    .message-meta{font-size:.85rem;color:var(--muted);margin-bottom:.4rem;display:flex;justify-content:space-between;gap:.5rem;align-items:center;flex-wrap:wrap}
+    .muted{color:var(--muted)}
+    .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+    form{display:flex;flex-direction:column;gap:.6rem;max-width:680px}
+    label{font-size:.9rem;color:var(--muted)}
+    input,textarea{padding:.6rem .8rem;border-radius:0;border:1px solid rgba(71,85,105,0.12);background:transparent;color:var(--text);resize:vertical;transition:border-color .22s,box-shadow .22s,transform .22s}
+    input:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 4px rgba(148,163,184,0.12);outline:none;transform:translateY(-1px)}
+    .form-actions{display:flex;gap:.6rem;margin-top:.4rem;flex-wrap:wrap}
+    .btn-danger{color:#f87171;border-color:rgba(248,113,113,0.35)}
+    .btn-danger:hover{background:rgba(248,113,113,0.08);box-shadow:0 10px 20px rgba(248,113,113,0.1)}
+    .btn-accent{color:var(--admin);border-color:var(--admin);font-weight:600}
+    .btn-accent:hover{background:rgba(125,211,252,0.12);box-shadow:0 10px 20px rgba(125,211,252,0.18)}
+    button{padding:.55rem .9rem;border-radius:0;border:1px solid rgba(255,255,255,0.04);background:transparent;color:var(--text);cursor:pointer;transition:transform .2s,background .2s,box-shadow .2s}
+    button:hover{transform:translateY(-2px);background:rgba(255,255,255,0.06);box-shadow:0 10px 20px rgba(0,0,0,.14)}
+    .reply-panel{margin-top:.8rem;padding-top:.8rem;border-top:1px dashed var(--border)}
+    .reply-panel .reply-form{display:flex;flex-direction:column;gap:.5rem}
+    .reply-toggle{font-size:.82rem;color:var(--admin);background:transparent;border:1px solid var(--border);padding:.35rem .7rem;cursor:pointer;align-self:flex-start;border-radius:0;transition:background .18s}
+    .reply-toggle:hover{background:rgba(125,211,252,0.08)}
+    .reply-content{padding:.75rem;background:rgba(125,211,252,0.06);border-left:3px solid var(--admin);border-radius:0;margin-top:.5rem;color:var(--text)}
+    .reply-label{font-size:.75rem;color:var(--admin);font-weight:700;letter-spacing:.05em;margin-bottom:.3rem;display:flex;align-items:center;gap:.4rem}
+    @media (max-width:600px){.avatar-img{width:40px;height:40px}.nav-menu{gap:.6rem}.info-card{padding:1.4rem}}
+    .lang-wrap{display:flex;align-items:center;margin-left:1rem}
+    .lang-select{background:transparent;color:var(--text);border:1px solid rgba(255,255,255,0.04);padding:.35rem .5rem;border-radius:0;font-size:.92rem}
+    .inline-actions{display:flex;gap:.4rem;align-items:center;flex-wrap:wrap}
+    .inline-del{padding:.3rem .55rem;font-size:.78rem;color:#f87171;border:1px solid rgba(248,113,113,0.3);cursor:pointer;border-radius:0;background:transparent;transition:background .18s}
+    .inline-del:hover{background:rgba(248,113,113,0.1)}
+    .admin-mode-switch{display:inline-flex;align-items:center;gap:.4rem;padding:.3rem .6rem;border:1px solid var(--admin);background:rgba(125,211,252,0.08);color:var(--admin);font-size:.78rem;border-radius:0;margin-left:auto;letter-spacing:.04em;font-weight:600}
+  </style>
+</head>
+<body>
+  <!-- SVG goo filter for liquid cursor -->
+  <svg style="position:absolute;width:0;height:0" aria-hidden="true">
+    <defs>
+      <filter id="goo">
+        <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="blur"/>
+        <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 18 -7" result="goo"/>
+        <feBlend in="SourceGraphic" in2="goo"/>
+      </filter>
+    </defs>
+  </svg>
+
+  <!-- ===== LOGIN SCREEN ===== -->
+  <div class="login-wrap" id="loginWrap" role="dialog" aria-labelledby="loginTitle">
+    <div class="login-card">
+      <h1 id="loginTitle" class="login-title">管理后台</h1>
+      <p class="login-sub">WHY 个人空间后台管理入口</p>
+      <div class="login-input-wrap">
+        <input id="adminPassword" type="password" class="login-input" placeholder="请输入管理员密码" autocomplete="current-password" aria-label="管理员密码">
+        <div class="login-error" id="loginError" aria-live="polite"></div>
+      </div>
+      <button type="button" id="loginBtn" class="login-btn">进 入 管 理 台</button>
+      <p class="login-tip">与访客端共享数据 · 此端拥有完整编辑权限</p>
+    </div>
+  </div>
+
+  <!-- ===== MAIN SITE (shown after login) ===== -->
+  <div class="wrapper" id="mainSite" style="display:none">
+    <header class="navbar" role="banner">
+      <a href="#" class="avatar-link" id="homeAvatarLink" title="回到主页">
+        <svg class="avatar-img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="管理员头像">
+          <rect width="100" height="100" rx="50" fill="#0f172a" />
+          <circle cx="50" cy="36" r="18" fill="#475569" />
+          <ellipse cx="50" cy="74" rx="30" ry="16" fill="#475569" />
+        </svg>
+      </a>
+      <nav class="nav-menu" id="mainMenu" role="navigation" aria-label="主导航">
+        <button id="themeToggle" class="nav-item" aria-pressed="false" title="切换深色/浅色主题">主题</button>
+      </nav>
+      <div class="lang-wrap">
+        <label for="langSelect" class="sr-only">语言</label>
+        <select id="langSelect" class="lang-select" aria-label="选择语言">
+          <option value="zh-CN">简体中文</option>
+          <option value="zh-TW">繁體中文</option>
+          <option value="en">English</option>
+          <option value="ja">日本語</option>
+        </select>
+      </div>
+    </header>
+
+    <div class="admin-banner">
+      <span>◆</span>
+      <span><strong>管理员模式</strong> — 此端可编辑照片、文章、音乐并管理所有留言。数据与访客端实时共享。</span>
+      <button type="button" id="logoutBtn" class="logout-btn">退出登录</button>
+    </div>
+
+    <main id="contentArea">
+      <section id="homeSection" class="home-section visible-section" aria-labelledby="homeTitle">
+        <div class="info-card">
+          <div class="greeting">✦ 管理后台</div>
+          <h1 id="homeTitle" class="name">WHY</h1>
+          <span class="title-badge">管理员</span>
+          <p class="bio">栖身于冷冽与理性之间，探索交互的边界。<br><em style="font-size:.9rem;color:var(--admin)">当前端：编辑台 — 可发布照片 / 文章 / 音乐，管理留言。</em></p>
+
+          <div class="circle-hub" id="circleHub" aria-label="栏目导航">
+            <button type="button" id="hubAvatar" class="circle-core" aria-expanded="false" aria-label="点击展开栏目导航" title="点击展开栏目导航">
+              <svg class="avatar-img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="管理员头像">
+                <rect width="100" height="100" rx="50" fill="#0f172a" />
+                <circle cx="50" cy="36" r="18" fill="#475569" />
+                <ellipse cx="50" cy="74" rx="30" ry="16" fill="#475569" />
+              </svg>
+            </button>
+            <div class="circle-items" aria-hidden="true">
+              <button type="button" class="circle-item" data-section="articles" aria-label="文章分享">文章分享</button>
+              <button type="button" class="circle-item" data-section="music" aria-label="音乐推荐">音乐推荐</button>
+              <button type="button" class="circle-item" data-section="work" aria-label="工作相关">工作相关</button>
+              <button type="button" class="circle-item" data-section="messages" aria-label="私信管理">私信管理</button>
+            </div>
+          </div>
+
+          <!-- Photo upload panel — ADMIN: always visible, no password prompt -->
+          <div class="photo-panel" id="photoPanelWrap">
+            <div id="photoPreview" class="photo-preview" aria-label="个人照片预览（点击上传）" title="点击上传个人照片"></div>
+            <div class="photo-upload">
+              <input id="photoInput" type="file" accept="image/*">
+              <button type="button" id="removePhoto" aria-label="删除照片" title="删除照片">🗑</button>
+              <p class="photo-note" id="photoNote">管理员端：点击图片区域直接上传，无需密码。<br>图片保存在当前浏览器本地，与访客端共享。</p>
+            </div>
+          </div>
+
+          <div class="details-grid">
+            <div class="detail-item">
+              <span class="detail-label">所在地</span>
+              <span class="detail-value location">湖北</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">联系</span>
+              <span class="detail-value contact">0405why@gmail.com</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">模式</span>
+              <span class="detail-value" style="color:var(--admin);font-weight:600">管理员</span>
+            </div>
+          </div>
+
+          <div class="social-links" aria-label="社交链接">
+            <a class="social-icon" href="https://github.com/" target="_blank" rel="noopener">GitHub</a>
+            <a class="social-icon" href="https://dribbble.com/" target="_blank" rel="noopener">Dribbble</a>
+            <a class="social-icon" href="https://t.me/" target="_blank" rel="noopener">Telegram</a>
+          </div>
+        </div>
+      </section>
+
+      <button type="button" id="exitSection" class="circle-exit" aria-label="返回首页" title="返回首页">←</button>
+
+      <!-- ===== ARTICLES SECTION ===== -->
+      <section id="articlesSection" class="placeholder-content hidden-section visible-section" aria-hidden="true">
+        <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;margin-bottom:1rem">
+          <h2>📄 文章分享 <span style="font-size:.8rem;color:var(--admin);letter-spacing:.05em">[管理端 · 可编辑]</span></h2>
+          <span class="admin-mode-switch">管理员</span>
+        </div>
+        <p class="muted">发布文章并管理已发布的内容。</p>
+        <div class="articles-panel">
+          <button type="button" id="articleToggle" class="form-toggle">+ 添加文章</button>
+          <form id="articleForm" class="article-form hidden-section" aria-label="文章发布表单">
+            <div class="form-group">
+              <label for="articleTitle">标题</label>
+              <input id="articleTitle" name="title" type="text" placeholder="请输入文章标题" required>
+            </div>
+            <div class="section-divider"></div>
+            <div class="form-group">
+              <label for="articleSummary">摘要</label>
+              <textarea id="articleSummary" name="summary" rows="3" placeholder="简要说明这篇文章的重点"></textarea>
+            </div>
+            <div class="section-divider"></div>
+            <div class="form-group">
+              <label for="articleQuote">引用</label>
+              <input id="articleQuote" name="quote" type="text" placeholder="添加一句引用或灵感来源">
+            </div>
+            <div class="section-divider"></div>
+            <div class="form-group">
+              <label for="articleContent">正文</label>
+              <textarea id="articleContent" name="content" rows="6" placeholder="输入文章内容"></textarea>
+            </div>
+            <div class="form-actions">
+              <button type="submit" id="submitArticle" class="btn-accent">发布文章</button>
+            </div>
+          </form>
+          <div id="articlesList" class="articles-list"></div>
+        </div>
+      </section>
+
+      <!-- ===== MUSIC SECTION ===== -->
+      <section id="musicSection" class="placeholder-content hidden-section visible-section" aria-hidden="true">
+        <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;margin-bottom:1rem">
+          <h2>🎵 音乐推荐 <span style="font-size:.8rem;color:var(--admin);letter-spacing:.05em">[管理端 · 可编辑]</span></h2>
+          <span class="admin-mode-switch">管理员</span>
+        </div>
+        <p class="muted music-intro">发布音乐推荐、管理曲目及评论。管理员评论会有专属徽章。</p>
+        <form id="musicForm" class="music-form" aria-label="音乐推荐表单">
+          <label for="musicTitle">曲目</label>
+          <input id="musicTitle" name="title" type="text" placeholder="歌曲名称" required>
+
+          <label for="musicArtist">艺人</label>
+          <input id="musicArtist" name="artist" type="text" placeholder="歌手或乐队" required>
+
+          <label for="musicUrl">链接（可选）</label>
+          <input id="musicUrl" name="url" type="url" placeholder="音乐链接，例如 Spotify、YouTube">
+
+          <label for="musicNote">推荐理由 / 说明</label>
+          <textarea id="musicNote" name="note" rows="3" placeholder="为什么想推荐这首歌？"></textarea>
+
+          <div class="form-actions">
+            <button type="submit" id="submitMusic" class="btn-accent">发布推荐</button>
+          </div>
+        </form>
+
+        <div id="musicList" class="music-list"></div>
+      </section>
+
+      <!-- ===== WORK SECTION ===== -->
+      <section id="workSection" class="placeholder-content hidden-section visible-section" aria-hidden="true">
+        <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;margin-bottom:1rem">
+          <h2>💼 工作相关</h2>
+          <span class="admin-mode-switch">管理员</span>
+        </div>
+        <p class="muted">项目与经验将在此处展示。（可编辑版本待扩展）</p>
+      </section>
+
+      <!-- ===== MESSAGES SECTION ===== -->
+      <section id="messagesSection" class="placeholder-content hidden-section visible-section" aria-hidden="true">
+        <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;margin-bottom:1rem">
+          <h2>✉️ 私信 / 留言簿 <span style="font-size:.8rem;color:var(--admin);letter-spacing:.05em">[管理端 · 可回复]</span></h2>
+          <span class="admin-mode-switch">管理员</span>
+        </div>
+        <form id="messageForm" aria-label="管理员留言/回复表单">
+          <label for="guestName">姓名 <span style="color:var(--admin);font-size:.8rem">(管理员端自动标记管理员徽章)</span></label>
+          <input id="guestName" name="name" type="text" placeholder="管理员名称（可选，默认自动标记为管理员）">
+
+          <label for="guestMessage">留言 / 公告</label>
+          <textarea id="guestMessage" name="message" rows="4" placeholder="以管理员身份发布留言或公告..." required></textarea>
+
+          <div class="form-actions">
+            <button type="submit" id="submitMessage" class="btn-accent">发布（带管理员标签）</button>
+            <button type="button" id="clearMessages" class="btn-danger">清空所有留言</button>
+          </div>
+        </form>
+
+        <div id="messagesLive" role="status" aria-live="polite" class="muted sr-only"></div>
+
+        <ul id="messagesList" class="messages-list" aria-live="polite"></ul>
+      </section>
+    </main>
+
+    <footer class="footer-note" role="contentinfo">© WHY · 2026 · 管理后台</footer>
+  </div>
+
+  <script>
+  (function(){
+    'use strict';
+    // ===================== ADMIN AUTH =====================
+    const ADMIN_PASSWORD = 'YUANSHEN20080405WHY';   // 管理员密码
+    const ADMIN_SESSION_KEY = 'genshin_admin_session_v1';
+    const PHOTO_PASSWORD = '20080405WHY'; // 保留原访客端照片密码（兼容）
+    const loginWrap = document.getElementById('loginWrap');
+    const mainSite = document.getElementById('mainSite');
+    const loginBtn = document.getElementById('loginBtn');
+    const loginError = document.getElementById('loginError');
+    const adminPasswordInput = document.getElementById('adminPassword');
+    const logoutBtn = document.getElementById('logoutBtn');
+
+    function setAdminLoggedIn(loggedIn){
+      if(loggedIn){
+        try{ sessionStorage.setItem(ADMIN_SESSION_KEY, '1'); }catch(e){}
+        if(loginWrap) loginWrap.style.display = 'none';
+        if(mainSite) mainSite.style.display = 'flex';
+      }else{
+        try{ sessionStorage.removeItem(ADMIN_SESSION_KEY); }catch(e){}
+        if(loginWrap) loginWrap.style.display = 'flex';
+        if(mainSite) mainSite.style.display = 'none';
+        if(adminPasswordInput) adminPasswordInput.value = '';
+      }
+    }
+    function isAdminLoggedIn(){
+      try{ return sessionStorage.getItem(ADMIN_SESSION_KEY) === '1'; }catch(e){ return false; }
+    }
+    function tryLogin(){
+      const val = adminPasswordInput ? adminPasswordInput.value : '';
+      if(!val){
+        loginError.textContent = '请输入密码';
+        return;
+      }
+      if(val === ADMIN_PASSWORD){
+        loginError.textContent = '';
+        setAdminLoggedIn(true);
+        if(typeof initSite === 'function') initSite();
+      }else{
+        loginError.textContent = '密码错误，请重试';
+        if(adminPasswordInput) adminPasswordInput.value = '';
+      }
+    }
+    if(loginBtn){ loginBtn.addEventListener('click', tryLogin); }
+    if(adminPasswordInput){ adminPasswordInput.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); tryLogin(); } }); }
+    if(logoutBtn){ logoutBtn.addEventListener('click', ()=>{ setAdminLoggedIn(false); }); }
+
+    if(isAdminLoggedIn()){
+      if(loginWrap) loginWrap.style.display = 'none';
+      if(mainSite) mainSite.style.display = 'flex';
+    }
+
+    // ===================== SITE LOGIC =====================
+    const sections=['home','articles','music','work','messages'];
+    const menuLinks=document.querySelectorAll('.nav-item[data-section]');
+    const avatar=document.getElementById('homeAvatarLink');
+    const hubAvatar=document.getElementById('hubAvatar');
+    const circleHub=document.getElementById('circleHub');
+    const circleItems=document.querySelectorAll('.circle-item');
+    const exitButton=document.getElementById('exitSection');
+    function hideAll(){sections.forEach(s=>{const el=document.getElementById(s+'Section');if(el){el.classList.add('hidden-section');el.setAttribute('aria-hidden','true');el.classList.remove('show-active');el.classList.add('section-exit')}})}
+    function show(section){hideAll();const el=document.getElementById(section+'Section');if(el){el.classList.remove('hidden-section');el.classList.add('visible-section');requestAnimationFrame(()=>el.classList.add('show-active'));el.setAttribute('aria-hidden','false');el.classList.remove('section-exit')}menuLinks.forEach(l=>l.classList.toggle('home-link-active',l.dataset.section===section));
+      if(circleHub)circleHub.classList.remove('open');
+      if(exitButton){if(section==='home'){exitButton.classList.remove('visible');exitButton.classList.add('hide')}else{exitButton.classList.add('visible');exitButton.classList.remove('hide')}}
+    }
+    function navigate(section,push){if(push===undefined)push=true;if(!sections.includes(section))section='home';show(section);if(push)history.pushState({section},'',section==='home'?'/':`#${section}`)}
+    function setCircleHubState(open){
+      if(!circleHub) return;
+      circleHub.classList.toggle('open', open);
+      const expanded = Boolean(open);
+      if(hubAvatar) hubAvatar.setAttribute('aria-expanded', String(expanded));
+      const circleItemsContainer = circleHub.querySelector('.circle-items');
+      if(circleItemsContainer) circleItemsContainer.setAttribute('aria-hidden', String(!expanded));
+      if(open){
+        const hubRect = circleHub.getBoundingClientRect();
+        circleItems.forEach(item=>{
+          const margin=90;
+          const targetX = margin + Math.random() * Math.max(window.innerWidth - 2 * margin, 200);
+          const targetY = margin + Math.random() * Math.max(window.innerHeight - 2 * margin, 200);
+          const tx = targetX - hubRect.left - hubRect.width / 2;
+          const ty = targetY - hubRect.top - hubRect.height / 2;
+          item.style.setProperty('--tx', tx + 'px');
+          item.style.setProperty('--ty', ty + 'px');
+          item.style.setProperty('--selected-x', tx + 'px');
+          item.style.setProperty('--selected-y', ty + 'px');
+          const angle = Math.atan2(ty, tx) || (Math.random() * Math.PI * 2);
+          const dismissDist = 900;
+          item.style.setProperty('--dismiss-x', Math.cos(angle) * dismissDist + 'px');
+          item.style.setProperty('--dismiss-y', Math.sin(angle) * dismissDist + 'px');
+        });
+      }
+    }
+
+    let draggingItem = null;
+    let dragCandidate = null;
+    let dragActive = false;
+    let dragStartX = 0;
+    let dragStartY = 0;
+    let dragOriginLeft = 0;
+    let dragOriginTop = 0;
+    let lastDraggedItem = null;
+    let lastDragTime = 0;
+
+    function getCenterPosition(item){
+      const itemRect = item.getBoundingClientRect();
+      const hubRect = circleHub.getBoundingClientRect();
+      return {
+        x: itemRect.left - hubRect.left + itemRect.width / 2,
+        y: itemRect.top - hubRect.top + itemRect.height / 2
+      };
+    }
+
+    function resetCircleAnimations(){
+      circleItems.forEach(item=>{
+        item.classList.remove('selected','dismiss-away');
+        item.style.removeProperty('--selected-x');
+        item.style.removeProperty('--selected-y');
+        item.style.removeProperty('left');
+        item.style.removeProperty('top');
+        item.style.removeProperty('transition');
+      });
+      if(circleHub) circleHub.classList.remove('animating');
+    }
+
+    function onCirclePointerDown(event){
+      if(!circleHub || !circleHub.classList.contains('open')) return;
+      dragCandidate = event.currentTarget;
+      dragActive = false;
+      const position = getCenterPosition(dragCandidate);
+      dragOriginLeft = position.x;
+      dragOriginTop = position.y;
+      dragStartX = event.clientX;
+      dragStartY = event.clientY;
+      dragCandidate.setPointerCapture(event.pointerId);
+      dragCandidate.style.left = `${position.x}px`;
+      dragCandidate.style.top = `${position.y}px`;
+      dragCandidate.style.transition = 'none';
+    }
+
+    function onDocumentPointerMove(event){
+      if(!dragCandidate) return;
+      const dx = event.clientX - dragStartX;
+      const dy = event.clientY - dragStartY;
+      if(!dragActive && Math.hypot(dx, dy) > 6){
+        dragActive = true;
+        draggingItem = dragCandidate;
+        draggingItem.classList.add('dragging');
+      }
+      if(dragActive){
+        draggingItem.style.left = `${dragOriginLeft + dx}px`;
+        draggingItem.style.top = `${dragOriginTop + dy}px`;
+      }
+    }
+
+    function onDocumentPointerUp(event){
+      if(!dragCandidate) return;
+      if(dragActive){
+        dragCandidate.classList.remove('dragging');
+        lastDraggedItem = dragCandidate;
+        lastDragTime = Date.now();
+        setTimeout(()=>{ if(lastDraggedItem === dragCandidate) lastDraggedItem = null; }, 150);
+      }
+      try{ if(event.pointerId) dragCandidate.releasePointerCapture(event.pointerId); }catch(e){}
+      dragCandidate.style.transition = '';
+      dragCandidate = null;
+      draggingItem = null;
+      dragActive = false;
+    }
+
+    function isDragClick(item){
+      return lastDraggedItem === item && Date.now() - lastDragTime < 180;
+    }
+
+    function animateCircleSelection(item, section){
+      if(!item || !circleHub){
+        navigate(section);
+        return;
+      }
+      resetCircleAnimations();
+      circleHub.classList.add('animating');
+      item.classList.add('selected');
+      circleItems.forEach(el=>{if(el!==item) el.classList.add('dismiss-away');});
+      setTimeout(()=>{
+        resetCircleAnimations();
+        setCircleHubState(false);
+        navigate(section);
+      }, 320);
+    }
+
+    // ===================== CURSOR =====================
+    let cursorInited=false;
+    function initCursor(){
+      if(cursorInited)return; cursorInited=true;
+      const cursorEl = document.createElement('div');cursorEl.id='customCursor';document.body.appendChild(cursorEl);
+      const trailEls = [];
+      const trailConfigs = [
+        {cls:'cursor-trail-1', ease:1.0},
+        {cls:'cursor-trail-2', ease:0.15},
+        {cls:'cursor-trail-3', ease:0.08}
+      ];
+      trailConfigs.forEach(cfg=>{
+        const el = document.createElement('div');
+        el.className = `cursor-trail ${cfg.cls}`;
+        document.body.appendChild(el);
+        trailEls.push({el, x:0, y:0, ease:cfg.ease});
+      });
+      let mouseX=0, mouseY=0, prevMouseX=0, prevMouseY=0;
+      function animateCursor(){
+        const vx = mouseX - prevMouseX;
+        const vy = mouseY - prevMouseY;
+        const speed = Math.sqrt(vx*vx + vy*vy);
+        const angle = Math.atan2(vy, vx) * 180 / Math.PI;
+        const stretch = Math.min(1 + speed * 0.02, 1.6);
+        const squash = 1 / Math.sqrt(stretch);
+        cursorEl.style.transform = `translate(-50%,-50%) rotate(${angle}deg) scaleX(${stretch}) scaleY(${squash})`;
+        trailEls.forEach((t)=>{
+          t.x += (mouseX - t.x) * t.ease;
+          t.y += (mouseY - t.y) * t.ease;
+          t.el.style.left = t.x + 'px';
+          t.el.style.top = t.y + 'px';
+        });
+        prevMouseX = mouseX; prevMouseY = mouseY;
+        requestAnimationFrame(animateCursor);
+      }
+      animateCursor();
+      document.addEventListener('mousemove',e=>{
+        const x=Math.round((e.clientX/window.innerWidth)*100);
+        const y=Math.round((e.clientY/window.innerHeight)*100);
+        document.body.style.setProperty('--mouse-x', x+'%');
+        document.body.style.setProperty('--mouse-y', y+'%');
+        cursorEl.style.left=`${e.clientX}px`;
+        cursorEl.style.top=`${e.clientY}px`;
+        document.body.classList.add('mouse-active');
+        mouseX=e.clientX;mouseY=e.clientY;
+      });
+      document.addEventListener('mouseleave',()=>{
+        document.body.style.setProperty('--mouse-x','50%');
+        document.body.style.setProperty('--mouse-y','50%');
+        document.body.classList.remove('mouse-active');
+      });
+    }
+
+    // ===================== THEME =====================
+    let themeInited=false;
+    function initTheme(){
+      if(themeInited)return; themeInited=true;
+      const themeToggle=document.getElementById('themeToggle');const root=document.documentElement;const THEME_KEY='site-theme';
+      function setTheme(t){if(t==='light')root.setAttribute('data-theme','light');else root.removeAttribute('data-theme');themeToggle.setAttribute('aria-pressed',String(t==='light'));localStorage.setItem(THEME_KEY,t)}
+      themeToggle.addEventListener('click',()=>{const current=localStorage.getItem(THEME_KEY)==='light'?'light':'dark';setTheme(current==='light'?'dark':'light')});
+      const saved=localStorage.getItem(THEME_KEY);
+      if(saved)setTheme(saved);else if(window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches)setTheme('light');else setTheme('dark');
+    }
+
+    // ===================== i18n =====================
+    const LANG_KEY = 'site-lang';
+    const i18n = {
+      'zh-CN': {
+        nav: {home: '主页', articles: '文章分享', music: '音乐推荐', work: '工作相关', messages: '私信管理'},
+        theme: '主题', greeting: '✦ 管理后台', title: 'WHY', badge: '管理员', bio: '栖身于冷冽与理性之间，探索交互的边界。',
+        labels: {location: '所在地', contact: '联系', status: '模式'},
+        articles_more: '发布文章并管理已发布的内容。', music_intro: '发布音乐推荐、管理曲目及评论。管理员评论会有专属徽章。', work_placeholder: '项目与经验将在此处展示。',
+        music_title_label: '曲目', music_artist_label: '艺人', music_url_label: '链接（可选）', music_note_label: '推荐理由 / 说明',
+        music_title_placeholder: '歌曲名称', music_artist_placeholder: '歌手或乐队', music_url_placeholder: '音乐链接，例如 Spotify、YouTube', music_note_placeholder: '为什么想推荐这首歌？', music_submit: '发布推荐', music_empty: '暂无推荐，点击上方表单发布第一条音乐。', music_empty_alert: '请填写曲目和艺人', music_comment_placeholder: '写下你的讨论或推荐理由（管理员评论会带专属徽章）', music_comment_submit: '发表（管理员）', music_no_comments: '暂无讨论，欢迎留言。', music_discussion_header: '讨论', music_comments_label: '条评论', music_comment_empty_alert: '请填写评论内容',
+        msg_heading: '✉️ 私信 / 留言簿 [管理端 · 可回复]', name_label: '姓名', message_label: '留言 / 公告', send: '发布（带管理员标签）', clear: '清空所有留言', no_messages: '暂无留言，快来发表第一个吧！',
+        photo_note: '管理员端：点击图片区域直接上传，无需密码。<br>图片保存在当前浏览器本地，与访客端共享。', photo_remove: '删除照片', photo_empty: '个人照片', photo_type_alert: '请选择图片文件。', photo_size_alert: '图片大小请小于 2.5MB。',
+        confirm_clear: '确定要删除所有留言吗？', empty_message_alert: '请填写留言内容', saved: '留言已保存。', deleted: '留言已删除。', cleared: '已清空留言',
+        admin_badge: '管理员',
+        article_add: '+ 添加文章', article_collapse: '收起表单', article_submit: '发布文章', article_title_required: '文章标题不能为空', article_empty_hint: '暂无文章，点击上方按钮添加第一篇。',
+        message_announce_hint: '以管理员身份发布留言或公告...',
+        reply: '回复此留言', reply_placeholder: '管理员回复内容...', reply_submit: '回复（带管理员标签）',
+        login_title: '管理后台', login_sub: 'WHY 个人空间后台管理入口', login_ph: '请输入管理员密码', login_enter: '进 入 管 理 台', login_tip: '与访客端共享数据 · 此端拥有完整编辑权限', login_empty: '请输入密码', login_wrong: '密码错误，请重试', login_banner: '管理员模式 — 此端可编辑照片、文章、音乐并管理所有留言。数据与访客端实时共享。', login_logout: '退出登录'
+      },
+      'zh-TW': {
+        nav: {home: '主頁', articles: '文章分享', music: '音樂推薦', work: '工作相關', messages: '私信管理'},
+        theme: '主題', greeting: '✦ 管理後台', title: 'WHY', badge: '管理員', bio: '棲身於冷冽與理性之間，探索交互的邊界。',
+        labels: {location: '所在地', contact: '聯絡', status: '模式'},
+        articles_more: '發布文章並管理已發布的內容。', music_intro: '發布音樂推薦、管理曲目及評論。管理員評論會有專屬徽章。', work_placeholder: '專案與經驗將在此處展示。',
+        music_title_label: '曲目', music_artist_label: '藝人', music_url_label: '連結（可選）', music_note_label: '推薦理由 / 說明',
+        music_title_placeholder: '歌曲名稱', music_artist_placeholder: '歌手或樂隊', music_url_placeholder: '音樂連結，例如 Spotify、YouTube', music_note_placeholder: '為什麼想推薦這首歌？', music_submit: '發布推薦', music_empty: '暫無推薦，點擊上方表單發布第一條音樂。', music_empty_alert: '請填寫曲目和藝人', music_comment_placeholder: '寫下你的討論或推薦理由', music_comment_submit: '發表（管理員）', music_no_comments: '暫無討論，歡迎留言。', music_discussion_header: '討論', music_comments_label: '條評論', music_comment_empty_alert: '請填寫評論內容',
+        msg_heading: '✉️ 私信 / 留言簿 [管理端 · 可回覆]', name_label: '姓名', message_label: '留言 / 公告', send: '發布（帶管理員標籤）', clear: '清空所有留言', no_messages: '暫無留言，快來發表第一個吧！',
+        photo_note: '管理員端：點擊圖片區域直接上傳，無需密碼。<br>圖片保存在當前瀏覽器本地，與訪客端共享。', photo_remove: '刪除照片', photo_empty: '個人照片', photo_type_alert: '請選擇圖片文件。', photo_size_alert: '圖片大小請小於 2.5MB。',
+        confirm_clear: '確定要刪除所有留言嗎？', empty_message_alert: '請填寫留言內容', saved: '留言已保存。', deleted: '留言已刪除。', cleared: '已清空留言',
+        admin_badge: '管理員',
+        article_add: '+ 添加文章', article_collapse: '收起表單', article_submit: '發布文章', article_title_required: '文章標題不能為空', article_empty_hint: '暫無文章，點擊上方按鈕添加第一篇。',
+        message_announce_hint: '以管理員身份發布留言或公告...',
+        reply: '回覆此留言', reply_placeholder: '管理員回覆內容...', reply_submit: '回覆（帶管理員標籤）',
+        login_title: '管理後台', login_sub: 'WHY 個人空間後台管理入口', login_ph: '請輸入管理員密碼', login_enter: '進 入 管 理 台', login_tip: '與訪客端共享數據 · 此端擁有完整編輯權限', login_empty: '請輸入密碼', login_wrong: '密碼錯誤，請重試', login_banner: '管理員模式 — 此端可編輯照片、文章、音樂並管理所有留言。數據與訪客端實時共享。', login_logout: '退出登錄'
+      },
+      'en': {
+        nav: {home: 'Home', articles: 'Articles', music: 'Music', work: 'Work', messages: 'Messages'},
+        theme: 'Theme', greeting: '✦ Admin Console', title: 'WHY', badge: 'ADMIN', bio: 'Residing between frost and reason, exploring the edges of interaction.',
+        labels: {location: 'Location', contact: 'Contact', status: 'Mode'},
+        articles_more: 'Publish and manage articles.', music_intro: 'Post music recommendations and manage tracks & comments. Admin comments have an exclusive badge.', work_placeholder: 'Projects and experience will appear here.',
+        music_title_label: 'Track', music_artist_label: 'Artist', music_url_label: 'Link (optional)', music_note_label: 'Recommendation notes',
+        music_title_placeholder: 'Song title', music_artist_placeholder: 'Singer or band', music_url_placeholder: 'Music link such as Spotify or YouTube', music_note_placeholder: 'Why are you recommending this track?', music_submit: 'Publish', music_empty: 'No recommendations yet — publish the first track above.', music_empty_alert: 'Please enter a track and artist', music_comment_placeholder: 'Share your thoughts (admin comments get a special badge)', music_comment_submit: 'Post (Admin)', music_no_comments: 'No discussion yet.', music_discussion_header: 'Discussion', music_comments_label: 'comments', music_comment_empty_alert: 'Please enter a comment',
+        msg_heading: '✉️ Messages / Guestbook [Admin · Reply Enabled]', name_label: 'Name', message_label: 'Message / Announcement', send: 'Post (Admin Badge)', clear: 'Clear all', no_messages: 'No messages yet — be the first!',
+        photo_note: 'Admin mode: click image to upload directly (no password needed).<br>Saved locally in this browser and shared with visitor view.', photo_remove: 'Remove', photo_empty: 'Personal photo', photo_type_alert: 'Please choose an image file.', photo_size_alert: 'Please keep the image under 2.5MB.',
+        confirm_clear: 'Are you sure you want to delete all messages?', empty_message_alert: 'Please enter a message', saved: 'Message saved.', deleted: 'Message deleted.', cleared: 'Messages cleared.',
+        admin_badge: 'ADMIN',
+        article_add: '+ New Article', article_collapse: 'Collapse', article_submit: 'Publish', article_title_required: 'Article title is required', article_empty_hint: 'No articles yet — click the button above to add the first.',
+        message_announce_hint: 'Post a message or announcement as admin...',
+        reply: 'Reply', reply_placeholder: 'Admin reply content...', reply_submit: 'Reply (Admin Badge)',
+        login_title: 'Admin Console', login_sub: 'WHY Personal Site Admin Portal', login_ph: 'Enter admin password', login_enter: 'ENTER ADMIN CONSOLE', login_tip: 'Data shared with visitor view · Full edit permissions enabled here', login_empty: 'Please enter the password', login_wrong: 'Wrong password, please try again', login_banner: 'Admin Mode — edit photos, articles, music and moderate all messages. Data shared live with the visitor view.', login_logout: 'Logout'
+      },
+      'ja': {
+        nav: {home: 'ホーム', articles: '記事', music: '音楽', work: '仕事', messages: 'メッセージ'},
+        theme: 'テーマ', greeting: '✦ 管理コンソール', title: 'WHY', badge: '管理者', bio: '冷たさと理性の間に佇み、インタラクションの境界を探る。',
+        labels: {location: '所在地', contact: '連絡', status: 'モード'},
+        articles_more: '記事を投稿・管理します。', music_intro: '音楽のおすすめを投稿し、曲やコメントを管理します。管理者コメントには専用バッジが付きます。', work_placeholder: 'プロジェクトと経験がここに表示されます。',
+        music_title_label: '曲名', music_artist_label: 'アーティスト', music_url_label: 'リンク（任意）', music_note_label: 'おすすめ理由 / 説明',
+        music_title_placeholder: '曲名', music_artist_placeholder: '歌手またはバンド', music_url_placeholder: 'Spotify、YouTubeなどの音楽リンク', music_note_placeholder: 'おすすめしたい理由は？', music_submit: '投稿する', music_empty: 'まだおすすめはありません。上のフォームから最初の1曲をシェアしましょう！', music_empty_alert: '曲名とアーティストを入力してください', music_comment_placeholder: 'コメントを入力してください（管理者コメントには専用バッジが付きます）', music_comment_submit: '投稿（管理者）', music_no_comments: 'まだコメントはありません。', music_discussion_header: 'ディスカッション', music_comments_label: 'コメント', music_comment_empty_alert: 'コメントを入力してください',
+        msg_heading: '✉️ メッセージ / ゲストブック [管理者 · 返信可]', name_label: '名前', message_label: 'メッセージ / お知らせ', send: '投稿（管理者バッジ付き）', clear: 'すべて削除', no_messages: 'まだメッセージはありません。ぜひ最初の投稿を！',
+        photo_note: '管理者モード：画像エリアをクリックで直接アップロード（パスワード不要）。<br>このブラウザにローカル保存され、訪問者画面と共有されます。', photo_remove: '削除', photo_empty: '個人写真', photo_type_alert: '画像ファイルを選択してください。', photo_size_alert: '画像のサイズは2.5MB未満にしてください。',
+        confirm_clear: '全てのメッセージを削除してもよろしいですか？', empty_message_alert: 'メッセージを入力してください', saved: 'メッセージを保存しました。', deleted: 'メッセージを削除しました。', cleared: 'メッセージを全て削除しました。',
+        admin_badge: '管理者',
+        article_add: '+ 新規記事', article_collapse: '折りたたむ', article_submit: '投稿する', article_title_required: '記事タイトルは必須です', article_empty_hint: 'まだ記事はありません。上のボタンから最初の1本を追加しましょう。',
+        message_announce_hint: '管理者としてメッセージやお知らせを投稿...',
+        reply: 'このメッセージに返信', reply_placeholder: '管理者返信内容...', reply_submit: '返信（管理者バッジ付き）',
+        login_title: '管理コンソール', login_sub: 'WHY 個人サイト管理ポータル', login_ph: '管理者パスワードを入力', login_enter: '管 理 画 面 へ', login_tip: '訪問者画面とデータ共有 · この画面では全編集権限が有効です', login_empty: 'パスワードを入力してください', login_wrong: 'パスワードが違います。もう一度お試しください', login_banner: '管理者モード — 写真、記事、音楽の編集と全メッセージの管理が可能です。データは訪問者画面とリアルタイムで共有されます。', login_logout: 'ログアウト'
+      }
+    };
+
+    let langSelect = null;
+    function detectLang(){
+      const saved = localStorage.getItem(LANG_KEY);
+      if(saved && i18n[saved]) return saved;
+      const nav = (navigator.language || navigator.userLanguage || 'en').toLowerCase();
+      if(nav.startsWith('zh-tw') || nav.startsWith('zh-hk') || nav.startsWith('zh-mo')) return 'zh-TW';
+      if(nav.startsWith('zh')) return 'zh-CN';
+      if(nav.startsWith('ja')) return 'ja';
+      return 'en';
+    }
+    function applyLang(lang){
+      const dict = i18n[lang] || i18n['en'];
+      window._T = dict;
+      document.querySelectorAll('.nav-item').forEach(el=>{
+        const sec = el.dataset.section;
+        if(sec && dict.nav[sec]) el.textContent = dict.nav[sec];
+      });
+      const themeBtn = document.getElementById('themeToggle'); if(themeBtn) themeBtn.textContent = dict.theme;
+      const greet = document.querySelector('.greeting'); if(greet) greet.textContent = dict.greeting;
+      const nameEl = document.getElementById('homeTitle'); if(nameEl) nameEl.textContent = dict.title;
+      const badge = document.querySelector('.title-badge'); if(badge) badge.textContent = dict.badge;
+      const bio = document.querySelector('.bio'); if(bio) bio.innerHTML = dict.bio + '<br><em style="font-size:.9rem;color:var(--admin)">' + (lang==='zh-CN'?'当前端：编辑台 — 可发布照片 / 文章 / 音乐，管理留言。':'') + (lang==='zh-TW'?'當前端：編輯台 — 可發布照片 / 文章 / 音樂，管理留言。':'') + (lang==='en'?'Current mode: Editor — post photos / articles / music & moderate messages.':'') + (lang==='ja'?'現在モード：編集台 — 写真 / 記事 / 音楽を投稿し、メッセージを管理。':'') + '</em>';
+      const labels = document.querySelectorAll('.detail-item .detail-label');
+      if(labels && labels.length>=3){ labels[0].textContent = dict.labels.location; labels[1].textContent = dict.labels.contact; labels[2].textContent = dict.labels.status; }
+      const articlesMuted = document.querySelector('#articlesSection .muted'); if(articlesMuted) articlesMuted.textContent = dict.articles_more;
+      const musicIntro = document.querySelector('.music-intro'); if(musicIntro) musicIntro.textContent = dict.music_intro;
+      const workMuted = document.querySelector('#workSection .muted'); if(workMuted) workMuted.textContent = dict.work_placeholder;
+      const nameInputEl = document.getElementById('guestName'); if(nameInputEl) nameInputEl.placeholder = dict.name_label;
+      const msgInputEl = document.getElementById('guestMessage'); if(msgInputEl) msgInputEl.placeholder = dict.message_announce_hint || dict.message_label;
+      const submitBtn = document.getElementById('submitMessage'); if(submitBtn) submitBtn.textContent = dict.send;
+      const clearBtnEl = document.getElementById('clearMessages'); if(clearBtnEl) clearBtnEl.textContent = dict.clear;
+      const musicTitleLabel = document.querySelector('label[for="musicTitle"]'); if(musicTitleLabel) musicTitleLabel.textContent = dict.music_title_label;
+      const musicArtistLabel = document.querySelector('label[for="musicArtist"]'); if(musicArtistLabel) musicArtistLabel.textContent = dict.music_artist_label;
+      const musicUrlLabel = document.querySelector('label[for="musicUrl"]'); if(musicUrlLabel) musicUrlLabel.textContent = dict.music_url_label;
+      const musicNoteLabel = document.querySelector('label[for="musicNote"]'); if(musicNoteLabel) musicNoteLabel.textContent = dict.music_note_label;
+      const musicTitleInput = document.getElementById('musicTitle'); if(musicTitleInput) musicTitleInput.placeholder = dict.music_title_placeholder;
+      const musicArtistInput = document.getElementById('musicArtist'); if(musicArtistInput) musicArtistInput.placeholder = dict.music_artist_placeholder;
+      const musicUrlInput = document.getElementById('musicUrl'); if(musicUrlInput) musicUrlInput.placeholder = dict.music_url_placeholder;
+      const musicNoteInput = document.getElementById('musicNote'); if(musicNoteInput) musicNoteInput.placeholder = dict.music_note_placeholder;
+      const musicSubmitBtn = document.getElementById('submitMusic'); if(musicSubmitBtn) musicSubmitBtn.textContent = dict.music_submit;
+      const removePhotoBtn = document.getElementById('removePhoto'); if(removePhotoBtn) removePhotoBtn.title = dict.photo_remove;
+      const photoNote = document.getElementById('photoNote'); if(photoNote) photoNote.innerHTML = dict.photo_note;
+      const at = document.getElementById('articleToggle'); if(at){ const isHidden = document.getElementById('articleForm').classList.contains('hidden-section'); at.textContent = isHidden ? dict.article_add : dict.article_collapse; }
+      const sa = document.getElementById('submitArticle'); if(sa) sa.textContent = dict.article_submit;
+      const lt = document.getElementById('loginTitle'); if(lt) lt.textContent = dict.login_title;
+      const ls = document.querySelector('.login-sub'); if(ls) ls.textContent = dict.login_sub;
+      if(adminPasswordInput) adminPasswordInput.placeholder = dict.login_ph;
+      if(loginBtn) loginBtn.textContent = dict.login_enter;
+      const lti = document.querySelector('.login-tip'); if(lti) lti.textContent = dict.login_tip;
+      if(logoutBtn) logoutBtn.textContent = dict.login_logout;
+      localStorage.setItem(LANG_KEY, lang);
+      if(langSelect) langSelect.value = lang;
+      if(typeof renderMessages === 'function') renderMessages();
+      if(typeof renderMusic === 'function') renderMusic();
+      if(typeof renderArticles === 'function') renderArticles();
+    }
+
+    // ===================== DATA =====================
+    const MKEY='guestbookMessages_v1';
+    const MUSIC_KEY='musicRecommendations_v1';
+    const PHOTO_KEY='personalPhoto_v1';
+    const ARTICLES_KEY='blogArticles_v1';
+    let form, photoInput, photoPreview, removePhotoButton, nameInput, messageInput, list, live, clearBtn;
+    let musicForm, musicTitle, musicArtist, musicUrl, musicNote, musicListEl;
+    let articleToggle, articleForm, articleTitle, articleSummary, articleQuote, articleContent, articlesListEl;
+    let siteInited = false;
+    function initSite(){
+      if(siteInited) return; siteInited=true;
+      menuLinks.forEach(link=>{link.addEventListener('click',e=>{e.preventDefault();const sec=link.dataset.section||'home';navigate(sec)})});
+      if(avatar){avatar.addEventListener('click',e=>{e.preventDefault();navigate('home')})}
+      if(hubAvatar){hubAvatar.addEventListener('click',()=>{setCircleHubState(!circleHub.classList.contains('open'))})}
+      circleItems.forEach(item=>{item.addEventListener('pointerdown',onCirclePointerDown);item.addEventListener('click',e=>{if(isDragClick(item)){e.preventDefault();e.stopPropagation();return;}const section=item.dataset.section||'home';animateCircleSelection(item, section)})});
+      document.addEventListener('pointermove',onDocumentPointerMove);
+      document.addEventListener('pointerup',onDocumentPointerUp);
+      document.addEventListener('pointercancel',onDocumentPointerUp);
+      if(exitButton){exitButton.addEventListener('click',()=>{navigate('home')})}
+      window.addEventListener('popstate',e=>{const state=(e.state&&e.state.section)||location.hash.replace('#','')||'home';show(state)});
+
+      initTheme();
+      initCursor();
+
+      langSelect = document.getElementById('langSelect');
+      if(langSelect){
+        langSelect.addEventListener('change', (e)=>{ applyLang(e.target.value); });
+      }
+      applyLang(detectLang());
+
+      form=document.getElementById('messageForm');
+      photoInput=document.getElementById('photoInput');
+      photoPreview=document.getElementById('photoPreview');
+      removePhotoButton=document.getElementById('removePhoto');
+      nameInput=document.getElementById('guestName');
+      messageInput=document.getElementById('guestMessage');
+      list=document.getElementById('messagesList');
+      live=document.getElementById('messagesLive');
+      clearBtn=document.getElementById('clearMessages');
+      musicForm=document.getElementById('musicForm');
+      musicTitle=document.getElementById('musicTitle');
+      musicArtist=document.getElementById('musicArtist');
+      musicUrl=document.getElementById('musicUrl');
+      musicNote=document.getElementById('musicNote');
+      musicListEl=document.getElementById('musicList');
+      articleToggle=document.getElementById('articleToggle');
+      articleForm=document.getElementById('articleForm');
+      articleTitle=document.getElementById('articleTitle');
+      articleSummary=document.getElementById('articleSummary');
+      articleQuote=document.getElementById('articleQuote');
+      articleContent=document.getElementById('articleContent');
+      articlesListEl=document.getElementById('articlesList');
+
+      if(photoPreview){photoPreview.addEventListener('click',()=>{if(photoInput)photoInput.click();})}
+      if(photoInput){photoInput.addEventListener('change',e=>{const file=e.target.files[0];if(!file)return; if(!file.type.startsWith('image/')){alert((window._T && window._T.photo_type_alert) || '请选择图片文件。');photoInput.value='';return;} if(file.size>2500000){alert((window._T && window._T.photo_size_alert) || '图片大小请小于 2.5MB。');photoInput.value='';return;} const reader=new FileReader();reader.onload=()=>{savePhoto(reader.result);renderPhoto()};reader.readAsDataURL(file);})}
+      if(removePhotoButton){removePhotoButton.addEventListener('click',()=>{savePhoto('');if(photoInput)photoInput.value='';renderPhoto()})}
+      renderPhoto();
+
+      if(form){form.addEventListener('submit',e=>{e.preventDefault();const n=nameInput.value;const t=messageInput.value;if(!t.trim()){alert((window._T && window._T.empty_message_alert) || '请填写留言内容');return}addMessage(n,t,true);form.reset()})}
+      if(clearBtn)clearBtn.addEventListener('click',clearAll);
+
+      if(musicForm){musicForm.addEventListener('submit',e=>{e.preventDefault();const title=musicTitle.value;const artist=musicArtist.value;const url=musicUrl.value;const note=musicNote.value;if(!title.trim()||!artist.trim()){alert((window._T && window._T.music_empty_alert) || '请填写曲目和艺人');return}addMusic(title,artist,url,note);musicForm.reset()})}
+
+      if(articleToggle){articleToggle.addEventListener('click',toggleArticleForm)}
+      if(articleForm){articleForm.addEventListener('submit',e=>{e.preventDefault();const title=articleTitle.value;const summary=articleSummary.value;const quote=articleQuote.value;const content=articleContent.value;if(!title.trim()){alert((window._T && window._T.article_title_required) || '文章标题不能为空');return}addArticle(title,summary,quote,content);articleForm.reset();toggleArticleForm()})}
+
+      renderMessages();renderMusic();renderArticles();
+      const initial=location.hash.replace('#','')||'home';navigate(initial,false);
+    }
+
+    function loadPhoto(){return localStorage.getItem(PHOTO_KEY)||''}
+    function savePhoto(data){if(data) localStorage.setItem(PHOTO_KEY,data);else localStorage.removeItem(PHOTO_KEY)}
+    function renderPhoto(){if(!photoPreview)return;const data=loadPhoto();if(data){photoPreview.style.backgroundImage=`url(${data})`;photoPreview.classList.add('has-photo');if(removePhotoButton)removePhotoButton.style.display='inline-flex'}else{photoPreview.style.backgroundImage='none';photoPreview.classList.remove('has-photo');if(removePhotoButton)removePhotoButton.style.display='none'}}
+
+    function loadMessages(){try{return JSON.parse(localStorage.getItem(MKEY)||'[]')}catch(e){return[]}}
+    function saveMessages(arr){localStorage.setItem(MKEY,JSON.stringify(arr))}
+    function addMessage(name,text,isAdmin){
+      const arr=loadMessages();
+      const entry={
+        id:Date.now()+Math.floor(Math.random()*1000),
+        name:name?name.trim():((window._T && window._T.admin_badge) || '管理员'),
+        text:text.trim(),
+        time:Date.now(),
+        isAdmin:!!isAdmin,
+        replies:[]
+      };
+      arr.push(entry);saveMessages(arr);renderMessages();
+      live.textContent=(window._T && window._T.saved) || '留言已保存。';
+    }
+    function deleteMessage(id){let arr=loadMessages();arr=arr.filter(x=>x.id!==id);saveMessages(arr);renderMessages();live.textContent=(window._T && window._T.deleted) || '留言已删除。'}
+    function replyMessage(id, replyText){
+      let arr=loadMessages();
+      const item = arr.find(x=>x.id===id);
+      if(!item)return;
+      item.replies = item.replies || [];
+      item.replies.push({id:Date.now()+Math.floor(Math.random()*100), text:replyText.trim(), time:Date.now(), isAdmin:true});
+      saveMessages(arr);renderMessages();
+    }
+    function clearAll(){const conf=(window._T && window._T.confirm_clear) || '确定要删除所有留言吗？';if(confirm(conf)){localStorage.removeItem(MKEY);renderMessages();live.textContent=(window._T && window._T.cleared) || '已清空留言'}}
+    function renderMessages(){
+      if(!list) return;
+      list.innerHTML='';
+      const msgs=loadMessages().slice().reverse();
+      if(msgs.length===0){const emptyText=(window._T && window._T.no_messages) || '暂无留言，快来发表第一个吧！';list.innerHTML=`<li class="muted">${emptyText}</li>`;return}
+      msgs.forEach(m=>{
+        const li=document.createElement('li');
+        li.className='message-card' + (m.isAdmin ? ' admin-message' : '');
+        const meta=document.createElement('div');meta.className='message-meta';
+        const metaLeft=document.createElement('div');metaLeft.style.display='flex';metaLeft.style.alignItems='center';metaLeft.style.gap='.4rem';metaLeft.style.flexWrap='wrap';
+        if(m.isAdmin){const b=document.createElement('span');b.className='admin-badge';b.textContent=(window._T && window._T.admin_badge) || '管理员';metaLeft.appendChild(b);}
+        const who=document.createElement('span');who.textContent=`${m.name || '匿名'}`;metaLeft.appendChild(who);
+        const when=document.createElement('span');when.textContent=new Date(m.time).toLocaleString();
+        meta.appendChild(metaLeft);meta.appendChild(when);
+        const body=document.createElement('div');body.textContent=m.text;
+        const inlineActions = document.createElement('div');inlineActions.className='inline-actions';inlineActions.style.marginTop='.6rem';
+        const del=document.createElement('button');del.className='inline-del';del.textContent='删除';del.addEventListener('click',()=>{deleteMessage(m.id)});
+        inlineActions.appendChild(del);
+        li.appendChild(meta);li.appendChild(body);
+        if(m.replies && m.replies.length>0){
+          m.replies.forEach(r=>{
+            const rp = document.createElement('div');rp.className='reply-content';
+            const rl = document.createElement('div');rl.className='reply-label';
+            rl.innerHTML='<span>◆</span><span>' + ((window._T && window._T.admin_badge) || '管理员') + ' · 回复</span>';
+            const rt = document.createElement('div');rt.style.fontSize='.8rem';rt.style.color='var(--muted)';rt.style.marginBottom='.4rem';rt.textContent = new Date(r.time).toLocaleString();
+            const rb = document.createElement('div');rb.textContent = r.text;
+            rp.appendChild(rl);rp.appendChild(rt);rp.appendChild(rb);
+            li.appendChild(rp);
+          });
+        }
+        const replyPanel = document.createElement('div');replyPanel.className='reply-panel';
+        const replyToggle = document.createElement('button');replyToggle.className='reply-toggle';replyToggle.type='button';replyToggle.textContent = (window._T && window._T.reply) || '回复此留言';
+        const replyForm = document.createElement('form');replyForm.className='reply-form';replyForm.style.display='none';replyForm.addEventListener('submit', e=>{
+          e.preventDefault(); const ta = replyForm.querySelector('textarea'); const v = ta.value; if(!v.trim()) return;
+          replyMessage(m.id, v);
+        });
+        const ta = document.createElement('textarea');ta.rows=2;ta.placeholder=(window._T && window._T.reply_placeholder) || '管理员回复内容...';
+        const rbtn = document.createElement('button');rbtn.type='submit';rbtn.className='btn-accent';rbtn.style.alignSelf='flex-start';rbtn.textContent=(window._T && window._T.reply_submit) || '回复（带管理员标签）';
+        replyForm.appendChild(ta);replyForm.appendChild(rbtn);
+        replyToggle.addEventListener('click', ()=>{ replyForm.style.display = replyForm.style.display==='none' ? 'flex' : 'none'; });
+        replyPanel.appendChild(replyToggle);replyPanel.appendChild(replyForm);
+        li.appendChild(inlineActions);
+        li.appendChild(replyPanel);
+        list.appendChild(li);
+      });
+    }
+
+    function loadMusic(){try{return JSON.parse(localStorage.getItem(MUSIC_KEY)||'[]')}catch(e){return[]}}
+    function saveMusic(arr){localStorage.setItem(MUSIC_KEY,JSON.stringify(arr))}
+    function addMusic(title,artist,url,note){const arr=loadMusic();const entry={id:Date.now(),title:title.trim(),artist:artist.trim(),url:url.trim(),note:note.trim(),time:Date.now(),comments:[]};arr.push(entry);saveMusic(arr);renderMusic();}
+    function deleteMusic(id){let arr=loadMusic();arr=arr.filter(x=>x.id!==id);saveMusic(arr);renderMusic();}
+    function addMusicComment(trackId,text,isAdmin){const arr=loadMusic();const item=arr.find(x=>x.id===trackId);if(!item)return;item.comments=item.comments||[];item.comments.push({id:Date.now(),text:text.trim(),time:Date.now(),isAdmin:!!isAdmin});saveMusic(arr);renderMusic();}
+    function deleteMusicComment(trackId, commentId){const arr=loadMusic();const item=arr.find(x=>x.id===trackId);if(!item)return;item.comments = (item.comments||[]).filter(c=>c.id!==commentId);saveMusic(arr);renderMusic();}
+    function renderMusic(){
+      if(!musicListEl)return;
+      musicListEl.innerHTML='';
+      const recs=loadMusic().slice().reverse();
+      if(recs.length===0){const emptyText=(window._T && window._T.music_empty) || '暂无推荐，点击上方表单发布第一条音乐。';const emptyEl=document.createElement('div');emptyEl.className='muted';emptyEl.textContent=emptyText;musicListEl.appendChild(emptyEl);return}
+      recs.forEach(item=>{
+        const card=document.createElement('div');card.className='music-card';
+        const top=document.createElement('div');top.className='music-meta';
+        const track=document.createElement('span');track.className='music-title';track.textContent=item.title||'曲目';
+        const artist=document.createElement('span');artist.textContent=item.artist||'艺人';
+        top.appendChild(track);top.appendChild(artist);
+        const note=document.createElement('div');note.className='music-note';note.textContent=item.note || '';
+        if(item.url){const link=document.createElement('a');link.href=item.url;link.target='_blank';link.rel='noopener';link.textContent=(window._T && window._T.music_url_label) || '链接';link.style.display='inline-block';link.style.color='var(--accent)';link.style.textDecoration='none';link.style.marginTop='.35rem';note.appendChild(document.createElement('br'));note.appendChild(link)}
+        const footer=document.createElement('div');footer.className='music-meta';footer.style.justifyContent='space-between';footer.style.alignItems='center';footer.style.flexWrap='wrap';footer.style.gap='.4rem';
+        const time=document.createElement('span');time.textContent=new Date(item.time).toLocaleString();
+        const del=document.createElement('button');del.className='inline-del';del.textContent='删除曲目';del.addEventListener('click',()=>{deleteMusic(item.id)});
+        footer.appendChild(time);footer.appendChild(del);
+        card.appendChild(top);card.appendChild(note);card.appendChild(footer);
+
+        const commentsBlock=document.createElement('div');commentsBlock.className='music-comments';
+        const commentsHeader=document.createElement('div');commentsHeader.className='music-meta';
+        const commentsTitle=document.createElement('span');commentsTitle.textContent=(window._T && window._T.music_discussion_header) || 'Discussion';commentsHeader.appendChild(commentsTitle);
+        const commentsCount=document.createElement('span');commentsCount.textContent=`${(item.comments||[]).length} ${(window._T && window._T.music_comments_label) || 'comments'}`;commentsHeader.appendChild(commentsCount);commentsBlock.appendChild(commentsHeader);
+
+        const commentList=document.createElement('div');commentList.className='music-comment-list';commentList.style.display='flex';commentList.style.flexDirection='column';commentList.style.gap='.6rem';commentList.style.marginTop='.4rem';
+        const comments=(item.comments||[]).slice().reverse();
+        if(comments.length===0){const emptyComments=document.createElement('div');emptyComments.className='muted';emptyComments.textContent=(window._T && window._T.music_no_comments) || '暂无讨论，欢迎留言。';commentList.appendChild(emptyComments);}
+        else{comments.forEach(c=>{
+          const commentItem=document.createElement('div');commentItem.className='music-comment-item' + (c.isAdmin?' admin-comment':'');
+          const meta=document.createElement('div');meta.className='music-comment-meta';
+          const metaLeft = document.createElement('div');metaLeft.style.display='flex';metaLeft.style.alignItems='center';metaLeft.style.gap='.4rem';metaLeft.style.flexWrap='wrap';
+          if(c.isAdmin){const b=document.createElement('span');b.className='admin-badge';b.textContent=(window._T && window._T.admin_badge) || '管理员';metaLeft.appendChild(b);}
+          const commentTime=document.createElement('span');commentTime.textContent=new Date(c.time).toLocaleString();
+          metaLeft.appendChild(commentTime);
+          const delC = document.createElement('button');delC.className='inline-del';delC.textContent='删除';delC.addEventListener('click',()=>deleteMusicComment(item.id, c.id));
+          meta.appendChild(metaLeft);meta.appendChild(delC);
+          const commentBody=document.createElement('div');commentBody.textContent=c.text;
+          commentItem.appendChild(meta);commentItem.appendChild(commentBody);commentList.appendChild(commentItem);
+        })}
+        commentsBlock.appendChild(commentList);
+
+        const commentForm=document.createElement('form');commentForm.className='music-comment-form';
+        commentForm.addEventListener('submit',e=>{
+          e.preventDefault();const textarea=e.target.querySelector('textarea');const value=textarea.value;
+          if(!value.trim()){alert((window._T && window._T.music_comment_empty_alert) || '请填写评论内容');return;}
+          addMusicComment(item.id,value,true);textarea.value='';
+        });
+        const commentInput=document.createElement('textarea');commentInput.className='music-comment-input';commentInput.placeholder=(window._T && window._T.music_comment_placeholder) || '写下你的讨论或推荐理由（管理员评论会带专属徽章）';commentInput.rows=2;
+        const commentButton=document.createElement('button');commentButton.type='submit';commentButton.className='btn-accent';commentButton.style.alignSelf='flex-start';commentButton.textContent=(window._T && window._T.music_comment_submit) || '发表（管理员）';
+        commentForm.appendChild(commentInput);commentForm.appendChild(commentButton);
+        commentsBlock.appendChild(commentForm);
+
+        card.appendChild(commentsBlock);
+        musicListEl.appendChild(card);
+      });
+    }
+
+    function loadArticles(){try{return JSON.parse(localStorage.getItem(ARTICLES_KEY)||'[]')}catch(e){return[]}}
+    function saveArticles(arr){localStorage.setItem(ARTICLES_KEY,JSON.stringify(arr))}
+    function addArticle(title,summary,quote,content){const arr=loadArticles();const entry={id:Date.now(),title:title.trim(),summary:summary.trim(),quote:quote.trim(),content:content.trim(),time:Date.now()};arr.push(entry);saveArticles(arr);renderArticles();}
+    function deleteArticle(id){let arr=loadArticles();arr=arr.filter(x=>x.id!==id);saveArticles(arr);renderArticles();}
+    function toggleArticleForm(){if(!articleForm||!articleToggle)return;const isHidden=articleForm.classList.contains('hidden-section');articleForm.classList.toggle('hidden-section',!isHidden);articleToggle.textContent=isHidden?((window._T && window._T.article_collapse) || '收起表单'):((window._T && window._T.article_add) || '+ 添加文章');}
+    function renderArticles(){
+      if(!articlesListEl)return;
+      articlesListEl.innerHTML='';
+      const articles=loadArticles().slice().reverse();
+      if(articles.length===0){const emptyArticle=document.createElement('div');emptyArticle.className='muted';emptyArticle.textContent=(window._T && window._T.article_empty_hint) || '暂无文章，点击上方按钮添加第一篇。';articlesListEl.appendChild(emptyArticle);return}
+      articles.forEach(item=>{
+        const card=document.createElement('div');card.className='article-card';
+        const title=document.createElement('h3');title.textContent=item.title||'未命名文章';
+        const meta=document.createElement('div');meta.className='article-meta';
+        const when=document.createElement('span');when.textContent=new Date(item.time).toLocaleString();
+        const deleteBtn=document.createElement('button');deleteBtn.type='button';deleteBtn.className='inline-del';deleteBtn.textContent='删除';deleteBtn.addEventListener('click',()=>{deleteArticle(item.id)});
+        meta.appendChild(when);meta.appendChild(deleteBtn);
+        const summary=item.summary?document.createElement('p'):null;
+        if(summary){summary.textContent=item.summary;summary.style.whiteSpace='pre-wrap'}
+        const quote=item.quote?document.createElement('blockquote'):null;
+        if(quote){quote.textContent=item.quote}
+        const content=document.createElement('p');content.textContent=item.content||'';content.style.whiteSpace='pre-wrap';
+        card.appendChild(title);card.appendChild(meta);
+        if(summary)card.appendChild(summary);
+        if(quote)card.appendChild(quote);
+        card.appendChild(content);articlesListEl.appendChild(card);
+      });
+    }
+
+    window.initSite = initSite;
+
+    if(isAdminLoggedIn()){
+      initSite();
+    }
+  })();
+  </script>
+</body>
+</html>
